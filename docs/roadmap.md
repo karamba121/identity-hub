@@ -18,12 +18,17 @@ Este roadmap organiza o Identity Hub em fatias verticais demonstráveis. Ele nã
 - [x] registrar base de protocolos, clientes, tenancy, tokens, chaves,
   persistência e auditoria em ADRs;
 - [x] definir fatias, critérios de aceite e evidências esperadas;
-- [ ] escolher e adicionar a licença do repositório.
+- [x] adicionar a licença MIT ao repositório.
 
 ## Fase 1 — Fundação executável `MVP`
 
-- [ ] criar backend Spring Boot com Java LTS;
-- [ ] integrar Spring Security e Spring Authorization Server;
+- [x] adicionar o projeto backend Spring Boot 4.0.7 com Java 17;
+- [x] adicionar ao backend as dependências de Spring Security, Spring
+  Authorization Server, JPA, Flyway, PostgreSQL e Actuator;
+- [x] adicionar o projeto frontend Angular 21 com o template TailAdmin;
+- [ ] substituir nomes, metadados e conteúdo demonstrativo dos scaffolds pelo
+  domínio do Identity Hub;
+- [ ] configurar Spring Security e Spring Authorization Server;
 - [ ] definir módulos, regras de dependência e testes arquiteturais;
 - [ ] configurar PostgreSQL, Redis e execução local com Docker Compose;
 - [ ] criar migrações versionadas e dados de desenvolvimento seguros;
@@ -35,33 +40,59 @@ Este roadmap organiza o Identity Hub em fatias verticais demonstráveis. Ele nã
 instruções reproduzíveis; pipeline executa build e testes; nenhum segredo real
 está no repositório.
 
-## Fase 2 — Authorization Code, OIDC e PKCE `MVP`
+## Fase 2 — Login, consentimento e Authorization Code `MVP`
 
 - [ ] persistir usuários, clientes, autorizações e consentimentos;
 - [ ] cadastrar um cliente público de demonstração sem client secret;
-- [ ] implementar login e consentimento;
+- [ ] definir no backend um contexto de interação opaco, curto e de uso
+  controlado para preservar o pedido de autorização, conforme o
+  [ADR-008](adr/008-tailadmin-authorization-interaction-ui.md);
+- [ ] adaptar a página `sign-in` do TailAdmin como tela oficial de login do
+  servidor de autorização;
+- [ ] criar no TailAdmin a tela oficial de consentimento, exibindo cliente,
+  tenant e escopos obtidos de uma API segura do backend;
+- [ ] autenticar credenciais somente no backend e estabelecer sessão por cookie
+  `HttpOnly`, `Secure` em produção e protegido contra CSRF;
+- [ ] registrar no backend a aprovação ou a recusa do consentimento e retomar o
+  fluxo OAuth/OIDC original;
+- [ ] impedir que o frontend altere `client_id`, `redirect_uri`, escopos ou
+  qualquer outro dado validado do pedido de autorização;
 - [ ] exigir PKCE `S256` para cliente público;
 - [ ] disponibilizar authorization, token, metadata, JWK Set e UserInfo;
 - [ ] emitir access token e ID token com issuer e audience validados;
 - [ ] rejeitar redirect URI não idêntica à cadastrada;
-- [ ] testar code de uso único, state, nonce, PKCE inválido e replay;
+- [ ] testar interação expirada ou trocada, CSRF, code de uso único, state,
+  nonce, PKCE inválido, consentimento negado e replay;
 - [ ] documentar o fluxo e exemplos sem valores sensíveis.
 
-**Critério de aceite:** um teste de integração percorre o fluxo completo e
-demonstra também os principais cenários negativos.
+**Critério de aceite:** o navegador inicia o pedido no endpoint de autorização,
+usa as telas TailAdmin para login e consentimento e retorna ao cliente apenas
+depois de o backend validar e registrar toda a decisão. Um teste de integração
+percorre o fluxo completo e demonstra também os principais cenários negativos.
 
-## Fase 3 — Cliente Angular demonstrativo `MVP`
+## Fase 3 — Superfícies Angular e cliente demonstrativo `MVP`
 
-- [ ] criar aplicação Angular seguindo um design system consistente;
-- [ ] implementar login Authorization Code + PKCE;
+- [x] criar a base Angular com o design system TailAdmin;
+- [ ] separar no frontend as áreas de interação OAuth, administração e cliente
+  demonstrativo;
+- [ ] usar o layout público de autenticação nas telas de login e consentimento,
+  sem sidebar ou navegação administrativa;
+- [ ] implementar no cliente demonstrativo o início do Authorization Code +
+  PKCE;
 - [ ] manter verifier, state e nonce apenas pelo tempo necessário;
 - [ ] implementar callback com validação de state e nonce;
 - [ ] consumir UserInfo e uma API protegida de demonstração;
 - [ ] tratar expiração, logout e sessão inválida;
+- [ ] preservar no retorno ao login o contexto opaco da interação, sem expor
+  authorization code, token, verifier ou client secret;
+- [ ] adaptar branding, estados de carregamento, erro, recusa e expiração ao
+  padrão visual do TailAdmin;
 - [ ] testar fluxo no navegador e acessibilidade básica.
 
 **Critério de aceite:** o navegador autentica sem client secret, acessa um
 resource server com audience correta e encerra a sessão de forma previsível.
+Os testes também demonstram que a UI de login/consentimento e o cliente OAuth
+demonstrativo exercem responsabilidades diferentes.
 
 ## Fase 4 — Sessões, refresh tokens e revogação `MVP`
 

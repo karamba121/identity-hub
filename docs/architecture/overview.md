@@ -7,8 +7,10 @@ aplicações humanas e integrações máquina a máquina. Ele autentica identida
 mantém relações de acesso por tenant e emite credenciais verificáveis para
 resource servers.
 
-O sistema está no estágio de documentação. Esta página descreve a arquitetura
-pretendida e seus invariantes; não afirma que os componentes já existem.
+O repositório já contém um scaffold de backend Spring Boot 4.0.7/Java 17 e um
+scaffold de frontend Angular 21 baseado no TailAdmin. Esta página descreve a
+arquitetura pretendida e seus invariantes; a presença dos projetos não significa
+que os fluxos OAuth/OIDC, o login ou o consentimento já estejam implementados.
 
 ## Objetivos arquiteturais
 
@@ -37,7 +39,8 @@ pretendida e seus invariantes; não afirma que os componentes já existem.
 flowchart TB
     USER["Pessoa usuária"]
     ADMIN["Administrador do tenant"]
-    SPA["SPA Angular<br/>sem segredo"]
+    SSOUI["Frontend TailAdmin<br/>login, consentimento e administração"]
+    SPA["Cliente SPA demonstrativo<br/>sem segredo"]
     CONF["Cliente confidencial<br/>backend ou BFF"]
     SERVICE["Serviço automatizado"]
     HUB["Identity Hub"]
@@ -48,9 +51,11 @@ flowchart TB
     KMS["Keystore/KMS"]
     OTEL["Backend OpenTelemetry"]
 
+    USER --> SSOUI
+    ADMIN --> SSOUI
+    SSOUI --> HUB
     USER --> SPA
     USER --> CONF
-    ADMIN --> SPA
     SPA --> HUB
     CONF --> HUB
     SERVICE --> HUB
@@ -68,21 +73,37 @@ flowchart TB
 Limites importantes:
 
 - o navegador é ambiente não confiável e não guarda client secret;
+- o TailAdmin apresenta login e consentimento, mas o backend autentica as
+  credenciais, valida o pedido OAuth/OIDC e registra a decisão;
+- o frontend recebe apenas um identificador opaco da interação e dados de
+  apresentação já validados, nunca autoridade para alterar cliente, redirect
+  URI ou escopos;
 - um cliente OAuth não recebe acesso só porque autentica corretamente;
 - o resource server valida issuer, audience, assinatura, tempo e escopos;
 - Redis é dependência operacional, não fonte de verdade de identidades;
 - o provedor de e-mail recebe apenas o necessário para entregar mensagens;
 - material privado de assinatura não entra no banco como configuração comum.
 
-## Unidade de implantação
+## Unidades de implantação
 
 O backend começa como uma aplicação Spring Boot única. Os módulos possuem
 fronteiras de código e propriedade de dados, mas compartilham processo,
 pipeline e banco PostgreSQL.
 
+O frontend Angular é um artefato estático separado e concentra três superfícies
+lógicas: interação do servidor de autorização, administração e cliente
+demonstrativo. Em produção, a preferência é publicá-lo atrás da mesma origem
+externa do backend; em desenvolvimento, o proxy do Angular encaminhará as rotas
+de API e protocolo. Isso reduz CORS e permite que a sessão do servidor use cookie
+seguro sem expor credenciais ao JavaScript.
+
 ```mermaid
 flowchart LR
-    API["Adaptadores HTTP e páginas de login"]
+    UI["Angular/TailAdmin"]
+    INTERACTION["Login e consentimento"]
+    PORTAL["Portal administrativo"]
+    DEMO["Cliente OAuth demonstrativo"]
+    API["Endpoints OAuth/OIDC e APIs de interação"]
 
     subgraph Modules["Módulos internos"]
         AS["Authorization Server"]
@@ -95,6 +116,12 @@ flowchart LR
         ADM["Administration"]
     end
 
+    UI --> INTERACTION
+    UI --> PORTAL
+    UI --> DEMO
+    INTERACTION --> API
+    PORTAL --> API
+    DEMO --> API
     API --> AS
     API --> ADM
     AS --> ID
@@ -163,6 +190,47 @@ tenant, cliente, correlação e contexto seguro.
 Expõe casos de uso administrativos com autorização explícita. Não acessa
 diretamente tabelas pertencentes a outro módulo; usa contratos internos.
 
+### Frontend TailAdmin
+
+Fornece a experiência visual do Identity Hub:
+
+- login, recuperação e MFA no layout público de autenticação;
+- consentimento com identificação confiável do cliente, tenant e escopos;
+- portal autenticado para administração;
+- cliente público demonstrativo para exercitar Authorization Code com PKCE.
+
+A tela de login do SSO não é o cliente OAuth demonstrativo. Ela é uma interface
+de primeira parte do servidor de autorização e trabalha sobre a sessão mantida
+pelo backend. O cliente demonstrativo inicia um pedido OAuth como relying party,
+mantém seu próprio `state`, `nonce` e PKCE verifier e recebe o callback final.
+A divisão de responsabilidades está registrada no
+[ADR-008](../adr/008-tailadmin-authorization-interaction-ui.md).
+
+## Topologia web e contrato de interação
+
+O pedido de autorização sempre começa e termina no backend. Quando for
+necessária interação humana:
+
+1. o backend valida o máximo possível do pedido e cria um identificador opaco,
+   curto e de uso controlado;
+2. o navegador é direcionado à rota TailAdmin correspondente, levando somente
+   esse identificador;
+3. o frontend consulta uma API de interação que retorna dados de apresentação
+   já validados;
+4. credenciais, MFA e decisão de consentimento são enviados ao backend com
+   proteção CSRF;
+5. o backend autentica, autoriza, persiste a decisão e retoma o pedido original;
+6. somente o backend produz a resposta OAuth/OIDC e redireciona ao cliente.
+
+O estado completo do pedido não será serializado em query parameters nem
+aceito de volta como fonte confiável. A API não aceitará do frontend novos
+valores de `client_id`, `redirect_uri` ou escopos na decisão de consentimento.
+
+Em produção, cookies de sessão serão `HttpOnly`, `Secure` e terão `SameSite`
+compatível com o fluxo testado. O frontend não armazenará senha, cookie, token,
+authorization code, PKCE verifier do cliente terceiro ou dados de sessão do
+servidor em armazenamento persistente.
+
 ## Fluxos principais
 
 ### Authorization Code com PKCE
@@ -171,14 +239,22 @@ diretamente tabelas pertencentes a outro módulo; usa contratos internos.
 sequenceDiagram
     actor U as Pessoa usuária
     participant C as Cliente público
-    participant H as Identity Hub
+    participant H as Backend Identity Hub
+    participant F as Frontend TailAdmin
     participant D as PostgreSQL
 
     C->>C: Gera verifier, challenge, state e nonce
     C->>H: Authorization request
-    H->>U: Autenticação e consentimento
-    U->>H: Credenciais e decisão
-    H->>D: Valida identidade, tenant, cliente e consentimento
+    H->>H: Valida cliente, redirect URI e parâmetros
+    H-->>F: Redireciona com interaction ID opaco
+    F->>H: Consulta contexto seguro da interação
+    H-->>F: Cliente, tenant e escopos para apresentação
+    F->>U: Login e consentimento no TailAdmin
+    U->>F: Credenciais e decisão
+    F->>H: Submete login/decisão com proteção CSRF
+    H->>D: Autentica e registra o consentimento
+    H-->>F: Informa rota de retomada
+    F->>H: Navega para retomada da autorização
     H-->>C: Authorization code de uso único
     C->>H: Code + verifier no token endpoint
     H->>D: Consome code e registra autorização
@@ -188,6 +264,12 @@ sequenceDiagram
 Invariantes:
 
 - `state` protege a correlação no cliente e `nonce` vincula o ID token;
+- o frontend de interação não gera, substitui nem valida o PKCE do cliente que
+  iniciou o pedido;
+- o interaction ID não contém o pedido em claro, expira e não pode ser usado
+  para trocar o cliente ou os escopos;
+- login e consentimento são apresentados pelo TailAdmin, mas decididos e
+  persistidos pelo backend;
 - authorization code é curto, de uso único e vinculado a cliente, redirect URI
   e code challenge;
 - cliente público usa PKCE com `S256` e não recebe segredo;
@@ -280,7 +362,9 @@ Cada fatia vertical deverá combinar:
 - testes de autorização por tenant e permissão;
 - testes negativos para redirect URI, audience, issuer, PKCE e replay;
 - análise de dependências e configuração;
-- fluxo de navegador para o cliente Angular quando ele existir.
+- testes de componentes e contratos das telas TailAdmin de login e
+  consentimento;
+- fluxo real de navegador cobrindo cliente, backend e frontend Angular.
 
 ## Evolução
 

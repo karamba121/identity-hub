@@ -25,6 +25,7 @@ declare qual registro foi substituído.
 | [005](005-token-and-key-lifecycle.md) | Ciclo de vida de tokens e chaves | Aceito |
 | [006](006-persistence-cache-and-consistency.md) | Persistência, cache e consistência | Aceito |
 | [007](007-security-audit-and-sensitive-data.md) | Auditoria e dados sensíveis | Aceito |
+| [008](008-tailadmin-authorization-interaction-ui.md) | TailAdmin como interface de login e consentimento | Aceito |
 
 ## Template
 

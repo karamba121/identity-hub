@@ -10,8 +10,9 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** fundação documental. Ainda não há backend, frontend,
-> infraestrutura executável ou fluxo de autenticação implementado. O
+> **Estado atual:** fundação documental e scaffolds adicionados. O repositório
+> já contém um backend Spring Boot e um frontend Angular/TailAdmin, ainda sem
+> fluxo OAuth/OIDC, login ou consentimento integrados. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 
@@ -186,8 +187,8 @@ identity-hub/
 │   │   ├── 006-persistence-cache-and-consistency.md
 │   │   └── 007-security-audit-and-sensitive-data.md
 │   └── roadmap.md
-├── backend/      # planejado
-├── frontend/     # planejado
+├── Backend/      # scaffold Spring Boot existente
+├── Frontend/     # scaffold Angular/TailAdmin existente
 └── compose.yaml  # planejado
 ```
 
@@ -200,6 +201,7 @@ identity-hub/
 - [ADR-005: ciclo de vida de tokens e chaves](docs/adr/005-token-and-key-lifecycle.md)
 - [ADR-006: persistência, cache e consistência](docs/adr/006-persistence-cache-and-consistency.md)
 - [ADR-007: auditoria e dados sensíveis](docs/adr/007-security-audit-and-sensitive-data.md)
+- [ADR-008: TailAdmin como interface de login e consentimento](docs/adr/008-tailadmin-authorization-interaction-ui.md)
 
 ## Referências normativas e técnicas
 
@@ -221,4 +223,4 @@ sem reescrever silenciosamente o histórico de uma decisão aceita.
 
 ## Licença
 
-A licença do repositório ainda será definida antes da primeira publicação.
+Distribuído sob a licença MIT. Consulte o arquivo [LICENSE](LICENSE).
