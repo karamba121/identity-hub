@@ -18,7 +18,7 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** sete fatias verticais executáveis. O repositório contém
+> **Estado atual:** oito fatias verticais executáveis. O repositório contém
 > Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
 > persistência PostgreSQL, tokens OIDC, um cliente público demonstrativo e uma
 > API protegida por issuer, audience e escopo. A terceira fatia acrescenta
@@ -30,7 +30,9 @@ context em um microsserviço artificial.
 > indisponível. A sexta fatia inicia a tenancy com organizações e memberships
 > persistidas, resolução pelo sujeito autenticado e apresentação dos vínculos
 > no cliente Angular. A sétima fatia versiona um catálogo mínimo de permissões
-> administrativas, sem confundi-lo com concessões a usuários. O
+> administrativas, sem confundi-lo com concessões a usuários. A oitava fatia
+> vincula memberships a papéis do próprio tenant, associa permissões aos papéis
+> e expõe as concessões efetivas no contexto autenticado. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 
@@ -264,6 +266,8 @@ A fundação multitenant está registrada em
 [`docs/vertical-slices/006-tenant-memberships.md`](docs/vertical-slices/006-tenant-memberships.md),
 e o catálogo de permissões está documentado em
 [`docs/vertical-slices/007-permission-catalog.md`](docs/vertical-slices/007-permission-catalog.md).
+Os papéis administrativos por tenant estão registrados em
+[`docs/vertical-slices/008-tenant-administrative-roles.md`](docs/vertical-slices/008-tenant-administrative-roles.md).
 
 CQRS será usado apenas onde modelos de leitura e escrita tiverem necessidades
 materialmente diferentes. Eventos de domínio não serão usados como sinônimo de

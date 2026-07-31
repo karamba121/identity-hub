@@ -1,6 +1,10 @@
 package com.karamba121.backend.features.tenancy;
 
 import java.util.List;
+import java.util.Comparator;
+
+import com.karamba121.backend.features.access.PermissionDefinition;
+import com.karamba121.backend.features.access.TenantRole;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -26,10 +30,29 @@ public class TenantContextController {
                 .map(membership -> new TenantContextResponse(
                         membership.getTenant().getId(),
                         membership.getTenant().getSlug(),
-                        membership.getTenant().getDisplayName()))
+                        membership.getTenant().getDisplayName(),
+                        roleContext(membership.getRole())))
                 .toList();
     }
 
-    record TenantContextResponse(String tenantId, String slug, String displayName) {
+    private static RoleContextResponse roleContext(TenantRole role) {
+        if (role == null) {
+            return null;
+        }
+        List<String> permissions = role.getPermissions().stream()
+                .sorted(Comparator.comparingInt(PermissionDefinition::getSortOrder))
+                .map(PermissionDefinition::getCode)
+                .toList();
+        return new RoleContextResponse(role.getCode(), role.getDisplayName(), permissions);
+    }
+
+    record TenantContextResponse(
+            String tenantId,
+            String slug,
+            String displayName,
+            RoleContextResponse role) {
+    }
+
+    record RoleContextResponse(String code, String displayName, List<String> permissions) {
     }
 }

@@ -49,6 +49,22 @@
             <li class="rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-900">
               <p class="text-sm font-medium text-gray-900 dark:text-white">{{ tenant.displayName }}</p>
               <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ tenant.slug }}</p>
+              @if (tenant.role) {
+                <div class="mt-3 border-t border-gray-100 pt-3 dark:border-gray-800">
+                  <p class="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    Papel efetivo: {{ tenant.role.displayName }}
+                  </p>
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    @for (permission of tenant.role.permissions; track permission) {
+                      <code class="rounded-full bg-brand-50 px-2.5 py-1 text-xs text-brand-700 dark:bg-brand-950/40 dark:text-brand-300">
+                        {{ permission }}
+                      </code>
+                    }
+                  </div>
+                </div>
+              } @else {
+                <p class="mt-3 text-xs text-warning-700 dark:text-warning-400">Nenhum papel administrativo atribuído.</p>
+              }
             </li>
           }
         </ul>

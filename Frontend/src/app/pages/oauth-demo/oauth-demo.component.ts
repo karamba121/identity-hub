@@ -23,6 +23,13 @@ interface TenantContextResponse {
   tenantId: string;
   slug: string;
   displayName: string;
+  role: TenantRoleContextResponse | null;
+}
+
+interface TenantRoleContextResponse {
+  code: string;
+  displayName: string;
+  permissions: string[];
 }
 
 interface PermissionDefinitionResponse {

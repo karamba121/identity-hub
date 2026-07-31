@@ -18,6 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.karamba121.backend.features.identity.IdentityUser;
 import com.karamba121.backend.features.identity.IdentityUserRepository;
+import com.karamba121.backend.features.access.PermissionDefinitionRepository;
+import com.karamba121.backend.features.access.TenantRole;
+import com.karamba121.backend.features.access.TenantRoleRepository;
 import com.karamba121.backend.features.tenancy.Tenant;
 import com.karamba121.backend.features.tenancy.TenantMembership;
 import com.karamba121.backend.features.tenancy.TenantMembershipRepository;
@@ -32,6 +35,8 @@ public class DevelopmentBootstrap implements ApplicationRunner {
     private final PasswordEncoder passwordEncoder;
     private final TenantRepository tenants;
     private final TenantMembershipRepository memberships;
+    private final TenantRoleRepository roles;
+    private final PermissionDefinitionRepository permissions;
 
     public DevelopmentBootstrap(
             IdentityHubProperties properties,
@@ -39,13 +44,17 @@ public class DevelopmentBootstrap implements ApplicationRunner {
             RegisteredClientRepository clients,
             PasswordEncoder passwordEncoder,
             TenantRepository tenants,
-            TenantMembershipRepository memberships) {
+            TenantMembershipRepository memberships,
+            TenantRoleRepository roles,
+            PermissionDefinitionRepository permissions) {
         this.properties = properties;
         this.users = users;
         this.clients = clients;
         this.passwordEncoder = passwordEncoder;
         this.tenants = tenants;
         this.memberships = memberships;
+        this.roles = roles;
+        this.permissions = permissions;
     }
 
     @Override
@@ -68,9 +77,14 @@ public class DevelopmentBootstrap implements ApplicationRunner {
         Tenant tenant = tenants.findBySlugIgnoreCase(bootstrap.tenantSlug())
                 .orElseGet(() -> tenants.save(new Tenant(
                         bootstrap.tenantSlug(), bootstrap.tenantName())));
-        if (!memberships.existsByTenantIdAndUserId(tenant.getId(), user.getId())) {
-            memberships.save(new TenantMembership(tenant, user));
-        }
+        TenantMembership membership = memberships.findByTenantIdAndUserId(tenant.getId(), user.getId())
+                .orElseGet(() -> memberships.save(new TenantMembership(tenant, user)));
+        TenantRole administrator = roles.findByTenantIdAndCode(tenant.getId(), "administrator")
+                .orElseGet(() -> new TenantRole(tenant, "administrator", "Administrador", true));
+        permissions.findAllByOrderBySortOrderAsc().forEach(administrator::grant);
+        administrator = roles.save(administrator);
+        membership.assignRole(administrator);
+        memberships.save(membership);
 
         if (existingClient == null) {
             RegisteredClient client = RegisteredClient.withId(UUID.randomUUID().toString())
