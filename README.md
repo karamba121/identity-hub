@@ -18,13 +18,16 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** quatro fatias verticais executáveis. O repositório contém
+> **Estado atual:** cinco fatias verticais executáveis. O repositório contém
 > Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
 > persistência PostgreSQL, tokens OIDC, um cliente público demonstrativo e uma
 > API protegida por issuer, audience e escopo. A terceira fatia acrescenta
 > refresh tokens rotativos, detecção de replay, concorrência com sucessor único
 > e revogação RFC 7009. A quarta fatia coordena essa revogação com logout OIDC,
-> invalidação da sessão SSO e retorno pós-logout validado. O
+> invalidação da sessão SSO e retorno pós-logout validado. A quinta fatia
+> acrescenta métricas Prometheus protegidas e de cardinalidade limitada, além
+> de comprovar falha fechada quando a persistência de refresh tokens fica
+> indisponível. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 
@@ -250,7 +253,9 @@ A continuação com resource server está documentada em
 e o ciclo de sessão renovável está em
 [`docs/vertical-slices/003-rotating-refresh-tokens.md`](docs/vertical-slices/003-rotating-refresh-tokens.md).
 O encerramento coordenado está documentado em
-[`docs/vertical-slices/004-oidc-logout.md`](docs/vertical-slices/004-oidc-logout.md).
+[`docs/vertical-slices/004-oidc-logout.md`](docs/vertical-slices/004-oidc-logout.md),
+e a observabilidade e resiliência do ciclo de sessão estão em
+[`docs/vertical-slices/005-session-observability-and-resilience.md`](docs/vertical-slices/005-session-observability-and-resilience.md).
 
 CQRS será usado apenas onde modelos de leitura e escrita tiverem necessidades
 materialmente diferentes. Eventos de domínio não serão usados como sinônimo de

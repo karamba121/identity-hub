@@ -115,8 +115,8 @@ demonstrativo exercem responsabilidades diferentes.
 - [x] disponibilizar revogação padronizada;
 - [x] implementar logout OIDC e encerramento da sessão atual;
 - [x] testar concorrência, replay e revogação;
-- [ ] testar indisponibilidade parcial;
-- [ ] expor métricas sem cardinalidade ou dados sensíveis excessivos.
+- [x] testar indisponibilidade parcial;
+- [x] expor métricas sem cardinalidade ou dados sensíveis excessivos.
 
 **Critério de aceite:** testes concorrentes demonstram um único sucessor por
 rotação e nenhuma sessão revogada volta a conceder acesso.

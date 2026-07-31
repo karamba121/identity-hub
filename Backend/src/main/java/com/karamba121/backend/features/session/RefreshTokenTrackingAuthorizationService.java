@@ -17,14 +17,17 @@ public class RefreshTokenTrackingAuthorizationService implements OAuth2Authoriza
     private final OAuth2AuthorizationService delegate;
     private final RefreshTokenFamilyRepository families;
     private final RefreshTokenHistoryRepository history;
+    private final SessionMetrics metrics;
 
     public RefreshTokenTrackingAuthorizationService(
             OAuth2AuthorizationService delegate,
             RefreshTokenFamilyRepository families,
-            RefreshTokenHistoryRepository history) {
+            RefreshTokenHistoryRepository history,
+            SessionMetrics metrics) {
         this.delegate = delegate;
         this.families = families;
         this.history = history;
+        this.metrics = metrics;
     }
 
     @Override
@@ -63,6 +66,7 @@ public class RefreshTokenTrackingAuthorizationService implements OAuth2Authoriza
         history.findById(family.getCurrentTokenHash()).ifPresent(current -> current.markUsed(issuedAt));
         family.rotateTo(tokenHash, issuedAt, expiresAt);
         history.save(new RefreshTokenHistory(tokenHash, family.getId(), issuedAt));
+        metrics.recordEventAfterCommit(SessionMetrics.ROTATED);
     }
 
     @Override
@@ -121,6 +125,7 @@ public class RefreshTokenTrackingAuthorizationService implements OAuth2Authoriza
         RefreshTokenFamily family = families.save(
                 new RefreshTokenFamily(authorization.getId(), tokenHash, issuedAt, expiresAt));
         history.save(new RefreshTokenHistory(tokenHash, family.getId(), issuedAt));
+        metrics.recordEventAfterCommit(SessionMetrics.FAMILY_CREATED);
     }
 
     private void compromise(RefreshTokenFamily family, Instant at) {
@@ -130,11 +135,16 @@ public class RefreshTokenTrackingAuthorizationService implements OAuth2Authoriza
         if (currentAuthorization != null) {
             delegate.remove(currentAuthorization);
         }
+        metrics.recordEventAfterCommit(SessionMetrics.REPLAY_DETECTED);
     }
 
     private void revoke(RefreshTokenFamily family, Instant at) {
+        boolean newlyRevoked = family.getStatus() == RefreshTokenFamilyStatus.ACTIVE;
         family.revoke(at);
         history.findAllByFamilyId(family.getId()).forEach(token -> token.revoke(at));
+        if (newlyRevoked) {
+            metrics.recordEventAfterCommit(SessionMetrics.REVOKED);
+        }
     }
 
     private static Instant requiredInstant(Instant value, Instant fallback) {

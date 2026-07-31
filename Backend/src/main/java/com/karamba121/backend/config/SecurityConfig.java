@@ -72,6 +72,7 @@ import com.karamba121.backend.features.session.TransactionalRefreshTokenAuthenti
 import com.karamba121.backend.features.session.PublicClientRefreshTokenGenerator;
 import com.karamba121.backend.features.session.PublicRefreshClientAuthenticationConverter;
 import com.karamba121.backend.features.session.PublicRefreshClientAuthenticationProvider;
+import com.karamba121.backend.features.session.SessionMetrics;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.JWKSource;
@@ -87,7 +88,8 @@ public class SecurityConfig {
             LoginInteractionEntryPoint loginEntryPoint,
             PlatformTransactionManager transactionManager,
             OAuth2TokenGenerator<?> tokenGenerator,
-            RegisteredClientRepository registeredClients) throws Exception {
+            RegisteredClientRepository registeredClients,
+            SessionMetrics sessionMetrics) throws Exception {
         http.oauth2AuthorizationServer(authorizationServer -> authorizationServer
                 .tokenGenerator(tokenGenerator)
                 .clientAuthentication(client -> client
@@ -101,7 +103,7 @@ public class SecurityConfig {
                         AuthenticationProvider provider = providers.get(index);
                         if (provider instanceof OAuth2RefreshTokenAuthenticationProvider) {
                             providers.set(index, new TransactionalRefreshTokenAuthenticationProvider(
-                                    provider, transactionManager));
+                                    provider, transactionManager, sessionMetrics));
                             break;
                         }
                     }
@@ -167,10 +169,12 @@ public class SecurityConfig {
             JdbcOperations jdbcOperations,
             RegisteredClientRepository registeredClientRepository,
             RefreshTokenFamilyRepository families,
-            RefreshTokenHistoryRepository history) {
+            RefreshTokenHistoryRepository history,
+            SessionMetrics sessionMetrics) {
         JdbcOAuth2AuthorizationService delegate =
                 new JdbcOAuth2AuthorizationService(jdbcOperations, registeredClientRepository);
-        return new RefreshTokenTrackingAuthorizationService(delegate, families, history);
+        return new RefreshTokenTrackingAuthorizationService(
+                delegate, families, history, sessionMetrics);
     }
 
     @Bean

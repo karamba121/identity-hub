@@ -42,7 +42,8 @@ um retorno sem correspondência é tratado como erro e não como logout confirma
 - access tokens JWT já emitidos permanecem válidos até o limite de cinco
   minutos, pois não há introspecção obrigatória no resource server;
 - se a revogação estiver indisponível, o cliente não declara sucesso nem inicia
-  silenciosamente um logout parcial; uma política de indisponibilidade será
-  tratada em fatia posterior;
+  silenciosamente um logout parcial; a falha fechada do armazenamento de
+  sessões foi exercitada na
+  [fatia 005](005-session-observability-and-resilience.md);
 - front-channel/back-channel logout entre múltiplos clientes ainda não foi
   implementado.

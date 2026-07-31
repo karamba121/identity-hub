@@ -1,7 +1,11 @@
 package com.karamba121.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -23,8 +27,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.util.LinkedMultiValueMap;
@@ -32,6 +38,10 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.jayway.jsonpath.JsonPath;
+import com.karamba121.backend.features.session.RefreshTokenFamilyRepository;
+import com.karamba121.backend.features.session.SessionMetrics;
+
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -45,6 +55,12 @@ class RefreshTokenLifecycleIntegrationTests {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private PrometheusMeterRegistry meterRegistry;
+
+    @MockitoSpyBean
+    private RefreshTokenFamilyRepository families;
 
     @Test
     void rotatesRefreshTokenAndRevokesFamilyWhenAUsedTokenIsReplayed() throws Exception {
@@ -134,6 +150,50 @@ class RefreshTokenLifecycleIntegrationTests {
                 .andReturn();
 
         assertThat(logout.getResponse().getRedirectedUrl()).isNull();
+    }
+
+    @Test
+    void exposesOnlyBoundedSessionMetricsThroughTheProtectedPrometheusEndpoint() throws Exception {
+        double familiesBefore = eventCount(SessionMetrics.FAMILY_CREATED);
+        double rotationsBefore = eventCount(SessionMetrics.ROTATED);
+        double replaysBefore = eventCount(SessionMetrics.REPLAY_DETECTED);
+        long successesBefore = refreshOutcomeCount(SessionMetrics.SUCCESS);
+        long rejectionsBefore = refreshOutcomeCount(SessionMetrics.REJECTED);
+
+        String first = issueTokens().refreshToken();
+        MvcResult rotation = refresh(first, 200);
+        refresh(first, 400);
+
+        assertThat(eventCount(SessionMetrics.FAMILY_CREATED)).isEqualTo(familiesBefore + 1);
+        assertThat(eventCount(SessionMetrics.ROTATED)).isEqualTo(rotationsBefore + 1);
+        assertThat(eventCount(SessionMetrics.REPLAY_DETECTED)).isEqualTo(replaysBefore + 1);
+        assertThat(refreshOutcomeCount(SessionMetrics.SUCCESS)).isEqualTo(successesBefore + 1);
+        assertThat(refreshOutcomeCount(SessionMetrics.REJECTED)).isEqualTo(rejectionsBefore + 1);
+        assertThat(JsonPath.<String>read(
+                rotation.getResponse().getContentAsString(), "$.refresh_token")).isNotBlank();
+
+        mockMvc.perform(get("/actuator/prometheus"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/actuator/prometheus").with(user("monitor")))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .string(org.hamcrest.Matchers.containsString(
+                                "identity_hub_session_refresh_events_total")))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString(first))));
+    }
+
+    @Test
+    void failsClosedAndRecordsUnavailableWhenRefreshPersistenceIsDown() throws Exception {
+        String refreshToken = issueTokens().refreshToken();
+        long unavailableBefore = refreshOutcomeCount(SessionMetrics.UNAVAILABLE);
+        doThrow(new DataAccessResourceFailureException("simulated persistence outage"))
+                .when(families).findByIdForUpdate(anyString());
+
+        assertThatThrownBy(() -> refreshWithoutExpectation(refreshToken))
+                .isInstanceOf(DataAccessResourceFailureException.class);
+        assertThat(refreshOutcomeCount(SessionMetrics.UNAVAILABLE))
+                .isEqualTo(unavailableBefore + 1);
     }
 
     @Test
@@ -257,6 +317,20 @@ class RefreshTokenLifecycleIntegrationTests {
                         .param("client_id", "identity-hub-demo")
                         .param("refresh_token", refreshToken))
                 .andReturn();
+    }
+
+    private double eventCount(String event) {
+        return meterRegistry.get("identity_hub.session.refresh.events")
+                .tag("event", event)
+                .counter()
+                .count();
+    }
+
+    private long refreshOutcomeCount(String outcome) {
+        return meterRegistry.get("identity_hub.session.refresh.duration")
+                .tag("outcome", outcome)
+                .timer()
+                .count();
     }
 
     private static String queryParameter(String url, String name) {
