@@ -55,6 +55,26 @@
       </div>
     }
 
+    @if (permissionCatalog) {
+      <div class="mb-6 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+        <p class="font-semibold text-gray-900 dark:text-white">Catálogo de permissões</p>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">{{ permissionCatalog.notice }}</p>
+        <div class="mt-4 space-y-3">
+          @for (permission of permissionCatalog.permissions; track permission.code) {
+            <div class="rounded-lg bg-gray-50 px-4 py-3 dark:bg-gray-950/50">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ permission.displayName }}</p>
+                <code class="rounded bg-gray-200 px-2 py-1 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                  {{ permission.code }}
+                </code>
+              </div>
+              <p class="mt-2 text-xs leading-5 text-gray-500 dark:text-gray-400">{{ permission.description }}</p>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
     <div class="flex flex-wrap gap-3">
       @if (!hasRenewableSession()) {
         <button

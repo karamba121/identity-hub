@@ -25,6 +25,18 @@ interface TenantContextResponse {
   displayName: string;
 }
 
+interface PermissionDefinitionResponse {
+  code: string;
+  displayName: string;
+  description: string;
+  category: string;
+}
+
+interface PermissionCatalogResponse {
+  notice: string;
+  permissions: PermissionDefinitionResponse[];
+}
+
 @Component({
   selector: 'app-oauth-demo',
   imports: [DatePipe],
@@ -37,6 +49,7 @@ export class OauthDemoComponent implements OnInit {
   profile: Record<string, unknown> | null = null;
   resource: DemoResourceResponse | null = null;
   tenants: TenantContextResponse[] = [];
+  permissionCatalog: PermissionCatalogResponse | null = null;
   sessionExpiresAt: Date | null = null;
 
   private readonly clientId = 'identity-hub-demo';
@@ -271,12 +284,27 @@ export class OauthDemoComponent implements OnInit {
       headers: new HttpHeaders({ Authorization: `Bearer ${accessToken}` }),
     }).subscribe({
       next: tenants => {
-        this.loading = false;
         this.tenants = tenants;
+        this.loadPermissionCatalog(accessToken);
       },
       error: () => {
         this.loading = false;
         this.errorMessage = 'A API protegida respondeu, mas o contexto de organizações não pôde ser carregado.';
+      },
+    });
+  }
+
+  private loadPermissionCatalog(accessToken: string): void {
+    this.http.get<PermissionCatalogResponse>('/api/v1/demo/permission-catalog', {
+      headers: new HttpHeaders({ Authorization: `Bearer ${accessToken}` }),
+    }).subscribe({
+      next: catalog => {
+        this.loading = false;
+        this.permissionCatalog = catalog;
+      },
+      error: () => {
+        this.loading = false;
+        this.errorMessage = 'O contexto de organizações foi carregado, mas o catálogo de permissões não está disponível.';
       },
     });
   }
@@ -342,6 +370,7 @@ export class OauthDemoComponent implements OnInit {
     this.profile = null;
     this.resource = null;
     this.tenants = [];
+    this.permissionCatalog = null;
     this.sessionExpiresAt = null;
   }
 }

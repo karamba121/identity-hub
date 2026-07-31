@@ -8,24 +8,27 @@ mantém relações de acesso por tenant e emite credenciais verificáveis para
 resource servers.
 
 O repositório contém um backend Spring Boot 4.0.7/Java 17 e um frontend Angular
-21 baseado no TailAdmin. As seis primeiras fatias verticais implementam
+21 baseado no TailAdmin. As sete primeiras fatias verticais implementam
 Authorization Code com PKCE, login e consentimento por interação opaca,
 persistência PostgreSQL, metadata, JWK Set, ID token, access token, UserInfo e
 uma API protegida por issuer, audience e escopo. Refresh tokens opacos são
 rotacionados em famílias transacionais, com replay, revogação, métricas
 Prometheus protegidas e falha fechada diante da indisponibilidade da
 persistência. A fundação de tenancy persiste organizações e memberships e
-resolve os vínculos ativos pelo sujeito de um access token validado.
-Administração, RBAC, seleção de tenant ativo, logout global entre clientes,
-MFA, rotação durável de chaves e operação de produção continuam planejados.
+resolve os vínculos ativos pelo sujeito de um access token validado. Um catálogo
+versionado define as capacidades administrativas conhecidas, ainda sem
+atribuí-las a papéis ou usuários. Administração, RBAC, seleção de tenant ativo,
+logout global entre clientes, MFA, rotação durável de chaves e operação de
+produção continuam planejados.
 
 As evidências e limitações dos incrementos executáveis estão nas fatias
 [001](../vertical-slices/001-authorization-code-pkce.md),
 [002](../vertical-slices/002-protected-resource-api.md),
 [003](../vertical-slices/003-rotating-refresh-tokens.md),
 [004](../vertical-slices/004-oidc-logout.md),
-[005](../vertical-slices/005-session-observability-and-resilience.md) e
-[006](../vertical-slices/006-tenant-memberships.md).
+[005](../vertical-slices/005-session-observability-and-resilience.md),
+[006](../vertical-slices/006-tenant-memberships.md) e
+[007](../vertical-slices/007-permission-catalog.md).
 
 ## Objetivos arquiteturais
 
