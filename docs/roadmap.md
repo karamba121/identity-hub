@@ -126,7 +126,7 @@ rotação e nenhuma sessão revogada volta a conceder acesso.
 - [x] persistir tenants e memberships com unicidade por tenant e usuário;
 - [x] criar catálogo explícito de permissões;
 - [x] implementar papéis administrativos por tenant;
-- [ ] proteger o bootstrap do primeiro administrador;
+- [x] proteger o bootstrap do primeiro administrador;
 - [ ] impedir remoção ou rebaixamento do último administrador válido;
 - [ ] aplicar tenant e permission checks nas APIs administrativas;
 - [ ] criar CRUD de clientes OAuth com redirect URIs e escopos;

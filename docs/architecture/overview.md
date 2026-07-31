@@ -8,7 +8,7 @@ mantém relações de acesso por tenant e emite credenciais verificáveis para
 resource servers.
 
 O repositório contém um backend Spring Boot 4.0.7/Java 17 e um frontend Angular
-21 baseado no TailAdmin. As oito primeiras fatias verticais implementam
+21 baseado no TailAdmin. As nove primeiras fatias verticais implementam
 Authorization Code com PKCE, login e consentimento por interação opaca,
 persistência PostgreSQL, metadata, JWK Set, ID token, access token, UserInfo e
 uma API protegida por issuer, audience e escopo. Refresh tokens opacos são
@@ -30,8 +30,9 @@ As evidências e limitações dos incrementos executáveis estão nas fatias
 [004](../vertical-slices/004-oidc-logout.md),
 [005](../vertical-slices/005-session-observability-and-resilience.md),
 [006](../vertical-slices/006-tenant-memberships.md),
-[007](../vertical-slices/007-permission-catalog.md) e
-[008](../vertical-slices/008-tenant-administrative-roles.md).
+[007](../vertical-slices/007-permission-catalog.md),
+[008](../vertical-slices/008-tenant-administrative-roles.md) e
+[009](../vertical-slices/009-first-administrator-bootstrap.md).
 
 ## Objetivos arquiteturais
 
@@ -344,8 +345,11 @@ por caso de uso. Nenhum fluxo crítico pode conceder acesso porque o cache não
 respondeu.
 
 Operações sensíveis usam concorrência otimista ou locks transacionais conforme
-o invariante. Rotação de refresh token, consumo de código e bootstrap
-administrativo exigem atomicidade.
+o invariante. Rotação de refresh token e consumo de código exigem atomicidade.
+O bootstrap administrativo adquire um lock pessimista persistido antes de
+consultar ou criar usuário, tenant, papel e membership, serializando instâncias
+concorrentes. O lock registra o usuário e tenant iniciais; execuções seguintes
+reconciliam esse mesmo contexto e ignoram configurações divergentes.
 
 ## Tokens e chaves
 

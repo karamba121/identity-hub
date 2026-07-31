@@ -18,7 +18,7 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** oito fatias verticais executáveis. O repositório contém
+> **Estado atual:** nove fatias verticais executáveis. O repositório contém
 > Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
 > persistência PostgreSQL, tokens OIDC, um cliente público demonstrativo e uma
 > API protegida por issuer, audience e escopo. A terceira fatia acrescenta
@@ -32,7 +32,9 @@ context em um microsserviço artificial.
 > no cliente Angular. A sétima fatia versiona um catálogo mínimo de permissões
 > administrativas, sem confundi-lo com concessões a usuários. A oitava fatia
 > vincula memberships a papéis do próprio tenant, associa permissões aos papéis
-> e expõe as concessões efetivas no contexto autenticado. O
+> e expõe as concessões efetivas no contexto autenticado. A nona fatia protege
+> o bootstrap do primeiro administrador com exclusão mútua transacional e
+> reconciliação idempotente. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 
@@ -267,7 +269,9 @@ A fundação multitenant está registrada em
 e o catálogo de permissões está documentado em
 [`docs/vertical-slices/007-permission-catalog.md`](docs/vertical-slices/007-permission-catalog.md).
 Os papéis administrativos por tenant estão registrados em
-[`docs/vertical-slices/008-tenant-administrative-roles.md`](docs/vertical-slices/008-tenant-administrative-roles.md).
+[`docs/vertical-slices/008-tenant-administrative-roles.md`](docs/vertical-slices/008-tenant-administrative-roles.md),
+e a proteção concorrente do primeiro administrador em
+[`docs/vertical-slices/009-first-administrator-bootstrap.md`](docs/vertical-slices/009-first-administrator-bootstrap.md).
 
 CQRS será usado apenas onde modelos de leitura e escrita tiverem necessidades
 materialmente diferentes. Eventos de domínio não serão usados como sinônimo de
