@@ -91,7 +91,7 @@ percorre o fluxo completo e demonstra também os principais cenários negativos.
 - [x] manter verifier, state e nonce apenas pelo tempo necessário;
 - [x] implementar callback com validação de state, nonce e audience;
 - [x] consumir UserInfo;
-- [ ] criar e consumir uma API protegida de demonstração com audience própria;
+- [x] criar e consumir uma API protegida de demonstração com audience própria;
 - [ ] tratar expiração, logout e sessão inválida;
 - [x] preservar no retorno ao login o contexto opaco da interação, sem expor
   authorization code, token, verifier ou client secret;
@@ -156,7 +156,8 @@ testes demonstram expiração, uso único e revogação das credenciais temporá
 - [ ] persistir client secret somente com proteção não reversível;
 - [ ] habilitar Client Credentials por concessão explícita;
 - [ ] emitir token com sujeito de máquina, audience e escopos mínimos;
-- [ ] criar resource server demonstrativo;
+- [x] criar resource server demonstrativo, inicialmente exercitado pelo cliente
+  público e reutilizável na futura fatia de Client Credentials;
 - [ ] publicar exemplo de validação de issuer, audience, assinatura e escopos;
 - [ ] definir rotação de client secrets com janela controlada;
 - [ ] testar segredo inválido, escopo excessivo e confusão de audience.

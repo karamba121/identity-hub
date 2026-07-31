@@ -50,7 +50,7 @@ class AuthorizationFlowIntegrationTests {
                         .queryParam("response_type", "code")
                         .queryParam("client_id", "identity-hub-demo")
                         .queryParam("redirect_uri", "http://localhost:4200/demo/callback")
-                        .queryParam("scope", "openid profile email")
+                        .queryParam("scope", "openid profile email demo.read")
                         .queryParam("state", "browser-state")
                         .queryParam("nonce", "browser-nonce")
                         .queryParam("code_challenge", challenge)
@@ -99,7 +99,7 @@ class AuthorizationFlowIntegrationTests {
         mockMvc.perform(get("/api/v1/interactions/{id}", consentInteractionId).session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.type").value("consent"))
-                .andExpect(jsonPath("$.scopes.length()").value(3));
+                .andExpect(jsonPath("$.scopes.length()").value(4));
 
         MvcResult consent = mockMvc.perform(post("/api/v1/interactions/{id}/consent", consentInteractionId)
                         .session(session)
@@ -142,6 +142,13 @@ class AuthorizationFlowIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Administrador Identity Hub"))
                 .andExpect(jsonPath("$.email").value("admin@identityhub.local"));
+
+        mockMvc.perform(get("/api/v1/demo/resource")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Acesso autorizado à API protegida"))
+                .andExpect(jsonPath("$.audience[0]").value("identity-hub-api"))
+                .andExpect(jsonPath("$.scopes").value(org.hamcrest.Matchers.hasItem("demo.read")));
 
         mockMvc.perform(post("/oauth2/token")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)

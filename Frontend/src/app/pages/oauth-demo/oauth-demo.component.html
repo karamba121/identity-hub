@@ -20,6 +20,15 @@
       </div>
     }
 
+    @if (resource) {
+      <div class="mb-6 rounded-xl border border-brand-200 bg-brand-50 p-5 dark:border-brand-900 dark:bg-brand-950/30">
+        <p class="font-semibold text-brand-800 dark:text-brand-200">API protegida validada</p>
+        <p class="mt-2 text-sm text-brand-700 dark:text-brand-300">{{ resource.message }}</p>
+        <p class="text-sm text-brand-700 dark:text-brand-300">Audience: {{ resource.audience.join(', ') }}</p>
+        <p class="text-sm text-brand-700 dark:text-brand-300">Escopos: {{ resource.scopes.join(', ') }}</p>
+      </div>
+    }
+
     <button
       type="button"
       (click)="start()"

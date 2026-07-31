@@ -57,6 +57,7 @@ export class ConsentComponent {
       openid: 'Confirmar sua identidade',
       profile: 'Ver seu nome e perfil básico',
       email: 'Ver seu endereço de e-mail',
+      'demo.read': 'Acessar a API demonstrativa em seu nome',
     };
     return labels[scope] ?? scope;
   }

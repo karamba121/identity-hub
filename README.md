@@ -18,9 +18,10 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** primeira fatia vertical executável. O repositório contém
+> **Estado atual:** duas fatias verticais executáveis. O repositório contém
 > Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
-> persistência PostgreSQL, tokens OIDC e um cliente público demonstrativo. O
+> persistência PostgreSQL, tokens OIDC, um cliente público demonstrativo e uma
+> API protegida por issuer, audience e escopo. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 
@@ -241,6 +242,8 @@ Exemplo da primeira fatia:
 Essa fatia foi entregue em 2026-07-31. As limitações e evidências verificadas
 estão registradas em
 [`docs/vertical-slices/001-authorization-code-pkce.md`](docs/vertical-slices/001-authorization-code-pkce.md).
+A continuação com resource server está documentada em
+[`docs/vertical-slices/002-protected-resource-api.md`](docs/vertical-slices/002-protected-resource-api.md).
 
 CQRS será usado apenas onde modelos de leitura e escrita tiverem necessidades
 materialmente diferentes. Eventos de domínio não serão usados como sinônimo de

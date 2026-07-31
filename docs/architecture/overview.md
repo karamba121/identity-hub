@@ -8,14 +8,16 @@ mantém relações de acesso por tenant e emite credenciais verificáveis para
 resource servers.
 
 O repositório contém um backend Spring Boot 4.0.7/Java 17 e um frontend Angular
-21 baseado no TailAdmin. A primeira fatia vertical implementa Authorization
-Code com PKCE, login e consentimento por interação opaca, persistência
-PostgreSQL, metadata, JWK Set, ID token, access token e UserInfo. Tenancy,
+21 baseado no TailAdmin. As duas primeiras fatias verticais implementam
+Authorization Code com PKCE, login e consentimento por interação opaca,
+persistência PostgreSQL, metadata, JWK Set, ID token, access token, UserInfo e
+uma API protegida por issuer, audience e escopo. Tenancy,
 administração, refresh token, MFA, rotação durável de chaves e operação de
 produção continuam planejados.
 
-A evidência e as limitações do incremento executável estão em
-[`docs/vertical-slices/001-authorization-code-pkce.md`](../vertical-slices/001-authorization-code-pkce.md).
+As evidências e limitações dos incrementos executáveis estão em
+[`docs/vertical-slices/001-authorization-code-pkce.md`](../vertical-slices/001-authorization-code-pkce.md)
+e [`docs/vertical-slices/002-protected-resource-api.md`](../vertical-slices/002-protected-resource-api.md).
 
 ## Objetivos arquiteturais
 

@@ -10,6 +10,13 @@ interface TokenResponse {
   expires_in: number;
 }
 
+interface DemoResourceResponse {
+  message: string;
+  subject: string;
+  audience: string[];
+  scopes: string[];
+}
+
 @Component({
   selector: 'app-oauth-demo',
   templateUrl: './oauth-demo.component.html',
@@ -18,6 +25,7 @@ export class OauthDemoComponent implements OnInit {
   loading = false;
   errorMessage = '';
   profile: Record<string, unknown> | null = null;
+  resource: DemoResourceResponse | null = null;
 
   private readonly clientId = 'identity-hub-demo';
 
@@ -57,7 +65,7 @@ export class OauthDemoComponent implements OnInit {
     authorizationUrl.searchParams.set('response_type', 'code');
     authorizationUrl.searchParams.set('client_id', this.clientId);
     authorizationUrl.searchParams.set('redirect_uri', callback);
-    authorizationUrl.searchParams.set('scope', 'openid profile email');
+    authorizationUrl.searchParams.set('scope', 'openid profile email demo.read');
     authorizationUrl.searchParams.set('state', state);
     authorizationUrl.searchParams.set('nonce', nonce);
     authorizationUrl.searchParams.set('code_challenge', challenge);
@@ -110,12 +118,27 @@ export class OauthDemoComponent implements OnInit {
       headers: new HttpHeaders({ Authorization: `Bearer ${accessToken}` }),
     }).subscribe({
       next: profile => {
-        this.loading = false;
         this.profile = profile;
+        this.loadProtectedResource(accessToken);
       },
       error: () => {
         this.loading = false;
         this.errorMessage = 'O token foi emitido, mas o UserInfo não pôde ser consultado.';
+      },
+    });
+  }
+
+  private loadProtectedResource(accessToken: string): void {
+    this.http.get<DemoResourceResponse>('/api/v1/demo/resource', {
+      headers: new HttpHeaders({ Authorization: `Bearer ${accessToken}` }),
+    }).subscribe({
+      next: resource => {
+        this.loading = false;
+        this.resource = resource;
+      },
+      error: () => {
+        this.loading = false;
+        this.errorMessage = 'O perfil foi carregado, mas a API protegida recusou o access token.';
       },
     });
   }

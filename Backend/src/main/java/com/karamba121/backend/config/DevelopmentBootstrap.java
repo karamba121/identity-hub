@@ -52,7 +52,8 @@ public class DevelopmentBootstrap implements ApplicationRunner {
                         bootstrap.userName(),
                         passwordEncoder.encode(bootstrap.userPassword()))));
 
-        if (clients.findByClientId(bootstrap.clientId()) == null) {
+        RegisteredClient existingClient = clients.findByClientId(bootstrap.clientId());
+        if (existingClient == null) {
             RegisteredClient client = RegisteredClient.withId(UUID.randomUUID().toString())
                     .clientId(bootstrap.clientId())
                     .clientName(bootstrap.clientName())
@@ -62,6 +63,7 @@ public class DevelopmentBootstrap implements ApplicationRunner {
                     .scope(OidcScopes.OPENID)
                     .scope(OidcScopes.PROFILE)
                     .scope(OidcScopes.EMAIL)
+                    .scope("demo.read")
                     .clientSettings(ClientSettings.builder()
                             .requireProofKey(true)
                             .requireAuthorizationConsent(true)
@@ -72,6 +74,10 @@ public class DevelopmentBootstrap implements ApplicationRunner {
                             .build())
                     .build();
             clients.save(client);
+        } else if (!existingClient.getScopes().contains("demo.read")) {
+            clients.save(RegisteredClient.from(existingClient)
+                    .scope("demo.read")
+                    .build());
         }
     }
 }
