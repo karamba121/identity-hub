@@ -38,6 +38,23 @@
       </div>
     }
 
+    @if (tenants.length > 0) {
+      <div class="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-800 dark:bg-gray-950/40">
+        <p class="font-semibold text-gray-900 dark:text-white">Organizações autorizadas</p>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+          O backend resolveu estes vínculos pelo sujeito autenticado do token.
+        </p>
+        <ul class="mt-4 space-y-3">
+          @for (tenant of tenants; track tenant.tenantId) {
+            <li class="rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-900">
+              <p class="text-sm font-medium text-gray-900 dark:text-white">{{ tenant.displayName }}</p>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ tenant.slug }}</p>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+
     <div class="flex flex-wrap gap-3">
       @if (!hasRenewableSession()) {
         <button

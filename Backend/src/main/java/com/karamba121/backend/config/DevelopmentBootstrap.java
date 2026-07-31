@@ -18,6 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.karamba121.backend.features.identity.IdentityUser;
 import com.karamba121.backend.features.identity.IdentityUserRepository;
+import com.karamba121.backend.features.tenancy.Tenant;
+import com.karamba121.backend.features.tenancy.TenantMembership;
+import com.karamba121.backend.features.tenancy.TenantMembershipRepository;
+import com.karamba121.backend.features.tenancy.TenantRepository;
 
 @Component
 public class DevelopmentBootstrap implements ApplicationRunner {
@@ -26,16 +30,22 @@ public class DevelopmentBootstrap implements ApplicationRunner {
     private final IdentityUserRepository users;
     private final RegisteredClientRepository clients;
     private final PasswordEncoder passwordEncoder;
+    private final TenantRepository tenants;
+    private final TenantMembershipRepository memberships;
 
     public DevelopmentBootstrap(
             IdentityHubProperties properties,
             IdentityUserRepository users,
             RegisteredClientRepository clients,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            TenantRepository tenants,
+            TenantMembershipRepository memberships) {
         this.properties = properties;
         this.users = users;
         this.clients = clients;
         this.passwordEncoder = passwordEncoder;
+        this.tenants = tenants;
+        this.memberships = memberships;
     }
 
     @Override
@@ -50,11 +60,17 @@ public class DevelopmentBootstrap implements ApplicationRunner {
             return;
         }
 
-        users.findByEmailIgnoreCase(bootstrap.userEmail()).orElseGet(() -> users.save(
+        IdentityUser user = users.findByEmailIgnoreCase(bootstrap.userEmail()).orElseGet(() -> users.save(
                 new IdentityUser(
                         bootstrap.userEmail(),
                         bootstrap.userName(),
                         passwordEncoder.encode(bootstrap.userPassword()))));
+        Tenant tenant = tenants.findBySlugIgnoreCase(bootstrap.tenantSlug())
+                .orElseGet(() -> tenants.save(new Tenant(
+                        bootstrap.tenantSlug(), bootstrap.tenantName())));
+        if (!memberships.existsByTenantIdAndUserId(tenant.getId(), user.getId())) {
+            memberships.save(new TenantMembership(tenant, user));
+        }
 
         if (existingClient == null) {
             RegisteredClient client = RegisteredClient.withId(UUID.randomUUID().toString())

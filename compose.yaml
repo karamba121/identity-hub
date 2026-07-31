@@ -42,6 +42,8 @@ services:
       IDENTITY_HUB_DEMO_NAME: ${IDENTITY_HUB_DEMO_NAME:-Administrador Identity Hub}
       IDENTITY_HUB_DEMO_CLIENT_ID: ${IDENTITY_HUB_DEMO_CLIENT_ID:-identity-hub-demo}
       IDENTITY_HUB_DEMO_CLIENT_NAME: ${IDENTITY_HUB_DEMO_CLIENT_NAME:-Cliente demonstrativo Identity Hub}
+      IDENTITY_HUB_DEMO_TENANT_SLUG: ${IDENTITY_HUB_DEMO_TENANT_SLUG:-identity-hub-demo}
+      IDENTITY_HUB_DEMO_TENANT_NAME: ${IDENTITY_HUB_DEMO_TENANT_NAME:-Organização demonstrativa}
     depends_on:
       postgres:
         condition: service_healthy

@@ -19,6 +19,8 @@ public record IdentityHubProperties(
             String clientId,
             String clientName,
             String redirectUri,
-            String postLogoutRedirectUri) {
+            String postLogoutRedirectUri,
+            String tenantSlug,
+            String tenantName) {
     }
 }

@@ -18,7 +18,7 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** cinco fatias verticais executáveis. O repositório contém
+> **Estado atual:** seis fatias verticais executáveis. O repositório contém
 > Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
 > persistência PostgreSQL, tokens OIDC, um cliente público demonstrativo e uma
 > API protegida por issuer, audience e escopo. A terceira fatia acrescenta
@@ -27,7 +27,9 @@ context em um microsserviço artificial.
 > invalidação da sessão SSO e retorno pós-logout validado. A quinta fatia
 > acrescenta métricas Prometheus protegidas e de cardinalidade limitada, além
 > de comprovar falha fechada quando a persistência de refresh tokens fica
-> indisponível. O
+> indisponível. A sexta fatia inicia a tenancy com organizações e memberships
+> persistidas, resolução pelo sujeito autenticado e apresentação dos vínculos
+> no cliente Angular. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 
@@ -86,10 +88,11 @@ npm start
 ```
 
 Abra `http://localhost:4200/demo`. O perfil `dev` provisiona somente para uso
-local o usuário `admin@identityhub.local`, com senha `ChangeMe123!`, e o cliente
-público `identity-hub-demo`. A senha pode ser substituída por
-`IDENTITY_HUB_DEMO_PASSWORD`. O bootstrap permanece desabilitado por padrão
-fora do perfil `dev`.
+local o usuário `admin@identityhub.local`, com senha `ChangeMe123!`, o cliente
+público `identity-hub-demo` e a organização `identity-hub-demo` vinculada ao
+usuário. Senha, slug e nome da organização podem ser substituídos pelas
+variáveis correspondentes do arquivo `.env`. O bootstrap permanece
+desabilitado por padrão fora do perfil `dev`.
 
 Para encerrar a infraestrutura, use `docker compose stop` na raiz. Tanto no
 Compose completo quanto na execução de desenvolvimento, esta fatia gera uma
@@ -256,6 +259,8 @@ O encerramento coordenado está documentado em
 [`docs/vertical-slices/004-oidc-logout.md`](docs/vertical-slices/004-oidc-logout.md),
 e a observabilidade e resiliência do ciclo de sessão estão em
 [`docs/vertical-slices/005-session-observability-and-resilience.md`](docs/vertical-slices/005-session-observability-and-resilience.md).
+A fundação multitenant está registrada em
+[`docs/vertical-slices/006-tenant-memberships.md`](docs/vertical-slices/006-tenant-memberships.md).
 
 CQRS será usado apenas onde modelos de leitura e escrita tiverem necessidades
 materialmente diferentes. Eventos de domínio não serão usados como sinônimo de

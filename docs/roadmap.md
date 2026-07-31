@@ -123,7 +123,7 @@ rotação e nenhuma sessão revogada volta a conceder acesso.
 
 ## Fase 5 — Tenants, RBAC e administração `MVP`
 
-- [ ] persistir tenants e memberships com unicidade por tenant e usuário;
+- [x] persistir tenants e memberships com unicidade por tenant e usuário;
 - [ ] criar catálogo explícito de permissões;
 - [ ] implementar papéis administrativos por tenant;
 - [ ] proteger o bootstrap do primeiro administrador;

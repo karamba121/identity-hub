@@ -19,6 +19,12 @@ interface DemoResourceResponse {
   scopes: string[];
 }
 
+interface TenantContextResponse {
+  tenantId: string;
+  slug: string;
+  displayName: string;
+}
+
 @Component({
   selector: 'app-oauth-demo',
   imports: [DatePipe],
@@ -30,6 +36,7 @@ export class OauthDemoComponent implements OnInit {
   successMessage = '';
   profile: Record<string, unknown> | null = null;
   resource: DemoResourceResponse | null = null;
+  tenants: TenantContextResponse[] = [];
   sessionExpiresAt: Date | null = null;
 
   private readonly clientId = 'identity-hub-demo';
@@ -249,12 +256,27 @@ export class OauthDemoComponent implements OnInit {
       headers: new HttpHeaders({ Authorization: `Bearer ${accessToken}` }),
     }).subscribe({
       next: resource => {
-        this.loading = false;
         this.resource = resource;
+        this.loadTenantContext(accessToken);
       },
       error: () => {
         this.loading = false;
         this.errorMessage = 'O perfil foi carregado, mas a API protegida recusou o access token.';
+      },
+    });
+  }
+
+  private loadTenantContext(accessToken: string): void {
+    this.http.get<TenantContextResponse[]>('/api/v1/demo/tenants', {
+      headers: new HttpHeaders({ Authorization: `Bearer ${accessToken}` }),
+    }).subscribe({
+      next: tenants => {
+        this.loading = false;
+        this.tenants = tenants;
+      },
+      error: () => {
+        this.loading = false;
+        this.errorMessage = 'A API protegida respondeu, mas o contexto de organizações não pôde ser carregado.';
       },
     });
   }
@@ -319,6 +341,7 @@ export class OauthDemoComponent implements OnInit {
     this.loading = false;
     this.profile = null;
     this.resource = null;
+    this.tenants = [];
     this.sessionExpiresAt = null;
   }
 }
