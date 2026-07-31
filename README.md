@@ -10,11 +10,77 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** fundação documental e scaffolds adicionados. O repositório
-> já contém um backend Spring Boot e um frontend Angular/TailAdmin, ainda sem
-> fluxo OAuth/OIDC, login ou consentimento integrados. O
+> **Estado atual:** primeira fatia vertical executável. O repositório contém
+> Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
+> persistência PostgreSQL, tokens OIDC e um cliente público demonstrativo. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
+
+## Executar a primeira fatia com Docker Compose
+
+O Compose da raiz constrói e inicia conjuntamente o frontend, o backend e o
+PostgreSQL. O Nginx do frontend serve a SPA e encaminha os endpoints OAuth/OIDC
+ao backend pela rede interna; somente a porta HTTP do frontend é publicada.
+
+Em PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+# Edite .env e substitua as duas senhas marcadas com "change-this"
+docker compose up -d --build
+docker compose ps
+```
+
+Abra `http://localhost:4200/demo`, ou a URL definida em
+`IDENTITY_HUB_PUBLIC_URL`. Em um host com HTTPS, essa URL deve conter o endereço
+público exato, sem barra no final, e `IDENTITY_HUB_COOKIE_SECURE` deve ser
+`true`. O Compose serve HTTP; em produção, a terminação TLS deve ficar em um
+proxy reverso externo.
+
+Para acompanhar a inicialização e encerrar os contêineres sem apagar o banco:
+
+```powershell
+docker compose logs -f
+docker compose stop
+```
+
+`docker compose down` remove os contêineres e a rede, mas preserva o volume por
+padrão. Não use `docker compose down -v` se quiser manter os dados.
+
+O arquivo `.env` é ignorado pelo Git. Não versione senhas reais. O volume
+`identity_hub_postgres_data` é exclusivo deste deploy conjunto e não reutiliza
+automaticamente volumes criados pela versão anterior do Compose.
+
+## Executar a primeira fatia para desenvolvimento
+
+Pré-requisitos: Java 17, Node.js, Docker e portas `4200`, `5432` e `8080`
+disponíveis. Em PowerShell, execute em três terminais:
+
+```powershell
+# terminal 1 - raiz do repositório
+docker compose up -d postgres
+
+# terminal 2
+cd Backend
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev"
+
+# terminal 3
+cd Frontend
+npm ci
+npm start
+```
+
+Abra `http://localhost:4200/demo`. O perfil `dev` provisiona somente para uso
+local o usuário `admin@identityhub.local`, com senha `ChangeMe123!`, e o cliente
+público `identity-hub-demo`. A senha pode ser substituída por
+`IDENTITY_HUB_DEMO_PASSWORD`. O bootstrap permanece desabilitado por padrão
+fora do perfil `dev`.
+
+Para encerrar a infraestrutura, use `docker compose stop` na raiz. Tanto no
+Compose completo quanto na execução de desenvolvimento, esta fatia gera uma
+chave RSA efêmera a cada inicialização e ainda não representa uma configuração
+de produção. Consulte a
+[evidência da fatia 001](docs/vertical-slices/001-authorization-code-pkce.md).
 
 ## Objetivo
 
@@ -164,6 +230,10 @@ Exemplo da primeira fatia:
 7. discovery e JWK Set;
 8. teste de integração do fluxo completo.
 
+Essa fatia foi entregue em 2026-07-31. As limitações e evidências verificadas
+estão registradas em
+[`docs/vertical-slices/001-authorization-code-pkce.md`](docs/vertical-slices/001-authorization-code-pkce.md).
+
 CQRS será usado apenas onde modelos de leitura e escrita tiverem necessidades
 materialmente diferentes. Eventos de domínio não serão usados como sinônimo de
 mensageria, e RabbitMQ só será introduzido quando existir uma integração
@@ -189,7 +259,7 @@ identity-hub/
 │   └── roadmap.md
 ├── Backend/      # scaffold Spring Boot existente
 ├── Frontend/     # scaffold Angular/TailAdmin existente
-└── compose.yaml  # planejado
+└── compose.yaml  # deploy conjunto de frontend, backend e PostgreSQL
 ```
 
 ## Decisões arquiteturais

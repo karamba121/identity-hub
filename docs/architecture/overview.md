@@ -7,10 +7,15 @@ aplicações humanas e integrações máquina a máquina. Ele autentica identida
 mantém relações de acesso por tenant e emite credenciais verificáveis para
 resource servers.
 
-O repositório já contém um scaffold de backend Spring Boot 4.0.7/Java 17 e um
-scaffold de frontend Angular 21 baseado no TailAdmin. Esta página descreve a
-arquitetura pretendida e seus invariantes; a presença dos projetos não significa
-que os fluxos OAuth/OIDC, o login ou o consentimento já estejam implementados.
+O repositório contém um backend Spring Boot 4.0.7/Java 17 e um frontend Angular
+21 baseado no TailAdmin. A primeira fatia vertical implementa Authorization
+Code com PKCE, login e consentimento por interação opaca, persistência
+PostgreSQL, metadata, JWK Set, ID token, access token e UserInfo. Tenancy,
+administração, refresh token, MFA, rotação durável de chaves e operação de
+produção continuam planejados.
+
+A evidência e as limitações do incremento executável estão em
+[`docs/vertical-slices/001-authorization-code-pkce.md`](../vertical-slices/001-authorization-code-pkce.md).
 
 ## Objetivos arquiteturais
 

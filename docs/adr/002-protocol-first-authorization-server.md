@@ -41,7 +41,9 @@ de funcionalidades.
   cuidadosa;
 - testes devem verificar comportamento de protocolo, não apenas métodos
   internos;
-- escolhas de versão serão fixadas apenas ao criar o projeto executável.
+- versões são fixadas e registradas junto a cada incremento executável; a
+  primeira fatia usa Spring Boot 4.0.7, Spring Security Authorization Server
+  7.0.6 e Java 17.
 
 ## Alternativas consideradas
 

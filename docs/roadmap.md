@@ -28,13 +28,16 @@ Este roadmap organiza o Identity Hub em fatias verticais demonstráveis. Ele nã
 - [x] adicionar o projeto frontend Angular 21 com o template TailAdmin;
 - [ ] substituir nomes, metadados e conteúdo demonstrativo dos scaffolds pelo
   domínio do Identity Hub;
-- [ ] configurar Spring Security e Spring Authorization Server;
+- [x] configurar Spring Security e Spring Authorization Server;
 - [ ] definir módulos, regras de dependência e testes arquiteturais;
-- [ ] configurar PostgreSQL, Redis e execução local com Docker Compose;
-- [ ] criar migrações versionadas e dados de desenvolvimento seguros;
-- [ ] adicionar health, readiness, logs estruturados e OpenTelemetry básico;
+- [x] configurar PostgreSQL e execução local com Docker Compose;
+- [ ] adicionar Redis junto ao primeiro fluxo efêmero que justifique seu uso;
+- [x] criar migrações versionadas e dados de desenvolvimento restritos ao
+  perfil `dev`;
+- [x] disponibilizar health e readiness pelo Actuator;
+- [ ] adicionar logs estruturados e OpenTelemetry básico;
 - [ ] configurar build, testes e análise de dependências no GitHub Actions;
-- [ ] documentar comandos locais sem versionar credenciais.
+- [x] documentar comandos locais sem versionar credenciais reais.
 
 **Critério de aceite:** clone limpo inicia a infraestrutura e a aplicação por
 instruções reproduzíveis; pipeline executa build e testes; nenhum segredo real
@@ -42,28 +45,32 @@ está no repositório.
 
 ## Fase 2 — Login, consentimento e Authorization Code `MVP`
 
-- [ ] persistir usuários, clientes, autorizações e consentimentos;
-- [ ] cadastrar um cliente público de demonstração sem client secret;
-- [ ] definir no backend um contexto de interação opaco, curto e de uso
+- [x] persistir usuários, clientes, autorizações e consentimentos;
+- [x] cadastrar um cliente público de demonstração sem client secret;
+- [x] definir no backend um contexto de interação opaco, curto e de uso
   controlado para preservar o pedido de autorização, conforme o
   [ADR-008](adr/008-tailadmin-authorization-interaction-ui.md);
-- [ ] adaptar a página `sign-in` do TailAdmin como tela oficial de login do
+- [x] adaptar a página `sign-in` do TailAdmin como tela oficial de login do
   servidor de autorização;
-- [ ] criar no TailAdmin a tela oficial de consentimento, exibindo cliente,
-  tenant e escopos obtidos de uma API segura do backend;
-- [ ] autenticar credenciais somente no backend e estabelecer sessão por cookie
+- [x] criar no TailAdmin a tela oficial de consentimento, exibindo cliente e
+  escopos obtidos de uma API segura do backend;
+- [ ] acrescentar tenant à apresentação do consentimento quando tenancy for
+  implementada;
+- [x] autenticar credenciais somente no backend e estabelecer sessão por cookie
   `HttpOnly`, `Secure` em produção e protegido contra CSRF;
-- [ ] registrar no backend a aprovação ou a recusa do consentimento e retomar o
+- [x] registrar no backend a aprovação ou a recusa do consentimento e retomar o
   fluxo OAuth/OIDC original;
-- [ ] impedir que o frontend altere `client_id`, `redirect_uri`, escopos ou
+- [x] impedir que o frontend altere `client_id`, `redirect_uri`, escopos ou
   qualquer outro dado validado do pedido de autorização;
-- [ ] exigir PKCE `S256` para cliente público;
-- [ ] disponibilizar authorization, token, metadata, JWK Set e UserInfo;
-- [ ] emitir access token e ID token com issuer e audience validados;
-- [ ] rejeitar redirect URI não idêntica à cadastrada;
-- [ ] testar interação expirada ou trocada, CSRF, code de uso único, state,
-  nonce, PKCE inválido, consentimento negado e replay;
-- [ ] documentar o fluxo e exemplos sem valores sensíveis.
+- [x] exigir PKCE `S256` para cliente público;
+- [x] disponibilizar authorization, token, metadata, JWK Set e UserInfo;
+- [x] emitir access token e ID token com issuer e audience validados;
+- [x] rejeitar redirect URI não idêntica à cadastrada;
+- [x] testar fluxo completo, interação pertencente a outra sessão, state, code
+  de uso único e replay;
+- [ ] completar a suíte negativa com interação expirada, PKCE inválido,
+  consentimento negado e falha explícita de CSRF;
+- [x] documentar o fluxo e exemplos sem valores sensíveis.
 
 **Critério de aceite:** o navegador inicia o pedido no endpoint de autorização,
 usa as telas TailAdmin para login e consentimento e retorna ao cliente apenas
@@ -73,21 +80,25 @@ percorre o fluxo completo e demonstra também os principais cenários negativos.
 ## Fase 3 — Superfícies Angular e cliente demonstrativo `MVP`
 
 - [x] criar a base Angular com o design system TailAdmin;
-- [ ] separar no frontend as áreas de interação OAuth, administração e cliente
+- [x] separar no frontend as superfícies de interação OAuth e cliente
   demonstrativo;
-- [ ] usar o layout público de autenticação nas telas de login e consentimento,
+- [ ] delimitar a futura área administrativa e remover as páginas demonstrativas
+  restantes do TailAdmin;
+- [x] usar o layout público de autenticação nas telas de login e consentimento,
   sem sidebar ou navegação administrativa;
-- [ ] implementar no cliente demonstrativo o início do Authorization Code +
+- [x] implementar no cliente demonstrativo o início do Authorization Code +
   PKCE;
-- [ ] manter verifier, state e nonce apenas pelo tempo necessário;
-- [ ] implementar callback com validação de state e nonce;
-- [ ] consumir UserInfo e uma API protegida de demonstração;
+- [x] manter verifier, state e nonce apenas pelo tempo necessário;
+- [x] implementar callback com validação de state, nonce e audience;
+- [x] consumir UserInfo;
+- [ ] criar e consumir uma API protegida de demonstração com audience própria;
 - [ ] tratar expiração, logout e sessão inválida;
-- [ ] preservar no retorno ao login o contexto opaco da interação, sem expor
+- [x] preservar no retorno ao login o contexto opaco da interação, sem expor
   authorization code, token, verifier ou client secret;
 - [ ] adaptar branding, estados de carregamento, erro, recusa e expiração ao
   padrão visual do TailAdmin;
-- [ ] testar fluxo no navegador e acessibilidade básica.
+- [x] testar o fluxo completo no navegador com PostgreSQL real;
+- [ ] executar uma verificação dedicada de acessibilidade.
 
 **Critério de aceite:** o navegador autentica sem client secret, acessa um
 resource server com audience correta e encerra a sessão de forma previsível.

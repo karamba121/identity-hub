@@ -1,0 +1,82 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${IDENTITY_HUB_DB_NAME:-identity_hub}
+      POSTGRES_USER: ${IDENTITY_HUB_DB_USERNAME:-identity_hub}
+      POSTGRES_PASSWORD: ${IDENTITY_HUB_DB_PASSWORD:?Defina IDENTITY_HUB_DB_PASSWORD no arquivo .env}
+    ports:
+      - "${IDENTITY_HUB_POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    volumes:
+      - identity_hub_postgres_data:/var/lib/postgresql/data
+    networks:
+      - identity_hub
+
+  backend:
+    build:
+      context: ./Backend
+    image: identity-hub-backend:${IDENTITY_HUB_IMAGE_TAG:-local}
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: ${IDENTITY_HUB_SPRING_PROFILE:-default}
+      IDENTITY_HUB_DB_URL: jdbc:postgresql://postgres:5432/${IDENTITY_HUB_DB_NAME:-identity_hub}
+      IDENTITY_HUB_DB_USERNAME: ${IDENTITY_HUB_DB_USERNAME:-identity_hub}
+      IDENTITY_HUB_DB_PASSWORD: ${IDENTITY_HUB_DB_PASSWORD:?Defina IDENTITY_HUB_DB_PASSWORD no arquivo .env}
+      IDENTITY_HUB_ISSUER: ${IDENTITY_HUB_PUBLIC_URL:-http://localhost:4200}
+      IDENTITY_HUB_UI_BASE_URL: ${IDENTITY_HUB_PUBLIC_URL:-http://localhost:4200}
+      IDENTITY_HUB_DEMO_REDIRECT_URI: ${IDENTITY_HUB_PUBLIC_URL:-http://localhost:4200}/demo/callback
+      IDENTITY_HUB_COOKIE_SECURE: ${IDENTITY_HUB_COOKIE_SECURE:-false}
+      IDENTITY_HUB_BOOTSTRAP_ENABLED: ${IDENTITY_HUB_BOOTSTRAP_ENABLED:-true}
+      IDENTITY_HUB_DEMO_EMAIL: ${IDENTITY_HUB_DEMO_EMAIL:-admin@identityhub.local}
+      IDENTITY_HUB_DEMO_PASSWORD: ${IDENTITY_HUB_DEMO_PASSWORD:?Defina IDENTITY_HUB_DEMO_PASSWORD no arquivo .env}
+      IDENTITY_HUB_DEMO_NAME: ${IDENTITY_HUB_DEMO_NAME:-Administrador Identity Hub}
+      IDENTITY_HUB_DEMO_CLIENT_ID: ${IDENTITY_HUB_DEMO_CLIENT_ID:-identity-hub-demo}
+      IDENTITY_HUB_DEMO_CLIENT_NAME: ${IDENTITY_HUB_DEMO_CLIENT_NAME:-Cliente demonstrativo Identity Hub}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${IDENTITY_HUB_BACKEND_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - identity_hub
+
+  frontend:
+    build:
+      context: ./Frontend
+    image: identity-hub-frontend:${IDENTITY_HUB_IMAGE_TAG:-local}
+    restart: unless-stopped
+    ports:
+      - "${IDENTITY_HUB_HTTP_PORT:-4200}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    networks:
+      - identity_hub
+
+volumes:
+  identity_hub_postgres_data:
+
+networks:
+  identity_hub:
+    driver: bridge

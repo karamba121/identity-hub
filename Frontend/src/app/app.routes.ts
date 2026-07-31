@@ -8,6 +8,8 @@ import { ResetPasswordComponent } from './pages/auth-pages/reset-password/reset-
 import { SignInComponent } from './pages/auth-pages/sign-in/sign-in.component';
 import { SignUpComponent } from './pages/auth-pages/sign-up/sign-up.component';
 import { TwoStepVerificationComponent } from './pages/auth-pages/two-step-verification/two-step-verification.component';
+import { ConsentComponent } from './pages/auth-pages/consent/consent.component';
+import { OauthDemoComponent } from './pages/oauth-demo/oauth-demo.component';
 import { BlankComponent } from './pages/blank/blank.component';
 import { CalenderComponent } from './pages/calender/calender.component';
 import { BarChartComponent } from './pages/charts/bar-chart/bar-chart.component';
@@ -97,6 +99,16 @@ import { AlternativeLayoutComponent } from './shared/layout/alternative-layout/a
 import { AppLayoutComponent } from './shared/layout/app-layout/app-layout.component';
 
 export const routes: Routes = [
+  {
+    path:'demo',
+    component:OauthDemoComponent,
+    title:'Cliente OAuth | Identity Hub'
+  },
+  {
+    path:'demo/callback',
+    component:OauthDemoComponent,
+    title:'Retorno OAuth | Identity Hub'
+  },
   {
     path:'',
     component:AppLayoutComponent,
@@ -566,6 +578,11 @@ export const routes: Routes = [
     path:'signin',
     component:SignInComponent,
     title:'Angular Sign In Dashboard | TailAdmin - Angular Admin Dashboard Template'
+  },
+  {
+    path:'consent',
+    component:ConsentComponent,
+    title:'Consentimento | Identity Hub'
   },
   {
     path:'signup',

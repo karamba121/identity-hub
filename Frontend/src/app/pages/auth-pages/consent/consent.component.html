@@ -1,0 +1,53 @@
+<app-auth-page-layout>
+  <div class="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
+    <div>
+      <p class="mb-2 text-sm font-medium text-brand-500">Identity Hub</p>
+      <h1 class="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
+        Autorizar acesso
+      </h1>
+      <p class="mb-6 text-sm text-gray-500 dark:text-gray-400">
+        <strong>{{ clientName || 'A aplicação' }}</strong> solicita as permissões abaixo.
+      </p>
+
+      @if (errorMessage) {
+        <div class="mb-5 rounded-lg border border-error-200 bg-error-50 px-4 py-3 text-sm text-error-700" role="alert">
+          {{ errorMessage }}
+        </div>
+      }
+
+      @if (scopes.length) {
+        <ul class="mb-7 space-y-3 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+          @for (scope of scopes; track scope) {
+            <li class="flex gap-3 text-sm text-gray-700 dark:text-gray-300">
+              <span class="mt-0.5 text-success-500" aria-hidden="true">✓</span>
+              <span>{{ scopeLabel(scope) }}</span>
+            </li>
+          }
+        </ul>
+      }
+
+      <div class="flex gap-3">
+        <button
+          type="button"
+          (click)="decide(false)"
+          [disabled]="loading || !clientName"
+          class="flex-1 rounded-lg border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 disabled:opacity-50 dark:border-gray-700 dark:text-gray-300"
+        >
+          Recusar
+        </button>
+        <button
+          type="button"
+          (click)="decide(true)"
+          [disabled]="loading || !clientName"
+          class="flex-1 rounded-lg bg-brand-500 px-4 py-3 text-sm font-medium text-white disabled:opacity-50"
+        >
+          {{ loading ? 'Processando…' : 'Autorizar' }}
+        </button>
+      </div>
+
+      <p class="mt-5 text-center text-xs text-gray-500 dark:text-gray-400">
+        O cliente não recebe sua senha. Você pode recusar sem compartilhar dados.
+      </p>
+    </div>
+  </div>
+</app-auth-page-layout>
