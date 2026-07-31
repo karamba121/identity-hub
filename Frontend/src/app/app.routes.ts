@@ -110,6 +110,11 @@ export const routes: Routes = [
     title:'Retorno OAuth | Identity Hub'
   },
   {
+    path:'demo/logout',
+    component:OauthDemoComponent,
+    title:'Sessão encerrada | Identity Hub'
+  },
+  {
     path:'',
     component:AppLayoutComponent,
     children:[

@@ -92,7 +92,7 @@ percorre o fluxo completo e demonstra também os principais cenários negativos.
 - [x] implementar callback com validação de state, nonce e audience;
 - [x] consumir UserInfo;
 - [x] criar e consumir uma API protegida de demonstração com audience própria;
-- [ ] tratar expiração, logout e sessão inválida;
+- [x] tratar expiração, logout e sessão inválida no cliente demonstrativo;
 - [x] preservar no retorno ao login o contexto opaco da interação, sem expor
   authorization code, token, verifier ou client secret;
 - [ ] adaptar branding, estados de carregamento, erro, recusa e expiração ao
@@ -113,7 +113,7 @@ demonstrativo exercem responsabilidades diferentes.
 - [x] rotacionar refresh token a cada uso;
 - [x] detectar reutilização e revogar a família comprometida;
 - [x] disponibilizar revogação padronizada;
-- [ ] implementar logout e encerramento de sessões;
+- [x] implementar logout OIDC e encerramento da sessão atual;
 - [x] testar concorrência, replay e revogação;
 - [ ] testar indisponibilidade parcial;
 - [ ] expor métricas sem cardinalidade ou dados sensíveis excessivos.

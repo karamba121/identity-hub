@@ -27,12 +27,15 @@ interface DemoResourceResponse {
 export class OauthDemoComponent implements OnInit {
   loading = false;
   errorMessage = '';
+  successMessage = '';
   profile: Record<string, unknown> | null = null;
   resource: DemoResourceResponse | null = null;
   sessionExpiresAt: Date | null = null;
 
   private readonly clientId = 'identity-hub-demo';
   private readonly refreshTokenKey = 'identity-hub.refresh-token';
+  private readonly idTokenKey = 'identity-hub.id-token';
+  private readonly logoutStateKey = 'identity-hub.logout-state';
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -40,6 +43,10 @@ export class OauthDemoComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    if (this.route.snapshot.routeConfig?.path === 'demo/logout') {
+      this.handleLogoutReturn();
+      return;
+    }
     const code = this.route.snapshot.queryParamMap.get('code');
     const state = this.route.snapshot.queryParamMap.get('state');
     const error = this.route.snapshot.queryParamMap.get('error');
@@ -115,6 +122,7 @@ export class OauthDemoComponent implements OnInit {
           return;
         }
         sessionStorage.setItem(this.refreshTokenKey, token.refresh_token);
+        sessionStorage.setItem(this.idTokenKey, token.id_token!);
         this.updateExpiration(token.expires_in);
         this.loadProfile(token.access_token);
       },
@@ -177,6 +185,42 @@ export class OauthDemoComponent implements OnInit {
       error: () => {
         this.loading = false;
         this.errorMessage = 'Não foi possível revogar a sessão no servidor.';
+      },
+    });
+  }
+
+  logoutSession(): void {
+    const refreshToken = sessionStorage.getItem(this.refreshTokenKey);
+    const idToken = sessionStorage.getItem(this.idTokenKey);
+    if (!refreshToken || !idToken) {
+      this.errorMessage = 'Não há uma sessão OIDC completa para encerrar.';
+      return;
+    }
+
+    this.loading = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+    const logoutState = this.randomValue(32);
+    const postLogoutRedirectUri = `${window.location.origin}/demo/logout`;
+    const body = new HttpParams()
+      .set('token', refreshToken)
+      .set('token_type_hint', 'refresh_token')
+      .set('client_id', this.clientId);
+    const headers = new HttpHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' });
+
+    this.http.post('/oauth2/revoke', body.toString(), { headers, responseType: 'text' }).subscribe({
+      next: () => {
+        const logoutUrl = new URL('/connect/logout', window.location.origin);
+        logoutUrl.searchParams.set('id_token_hint', idToken);
+        logoutUrl.searchParams.set('post_logout_redirect_uri', postLogoutRedirectUri);
+        logoutUrl.searchParams.set('state', logoutState);
+        sessionStorage.setItem(this.logoutStateKey, logoutState);
+        this.clearLocalSession(true);
+        window.location.assign(logoutUrl.toString());
+      },
+      error: () => {
+        this.loading = false;
+        this.errorMessage = 'Não foi possível revogar os tokens; a sessão SSO não foi encerrada.';
       },
     });
   }
@@ -251,8 +295,27 @@ export class OauthDemoComponent implements OnInit {
     this.sessionExpiresAt = new Date(Date.now() + expiresIn * 1000);
   }
 
-  private clearLocalSession(): void {
+  private handleLogoutReturn(): void {
+    const expectedState = sessionStorage.getItem(this.logoutStateKey);
+    const returnedState = this.route.snapshot.queryParamMap.get('state');
+    this.clearLocalSession();
+    window.history.replaceState({}, document.title, '/demo/logout');
+    if (expectedState && returnedState === expectedState) {
+      this.successMessage = 'Sessão OAuth e sessão do Identity Hub encerradas com sucesso.';
+      return;
+    }
+    this.errorMessage = 'O retorno do logout não corresponde ao fluxo iniciado neste navegador.';
+  }
+
+  private clearLocalSession(preserveLogoutState = false): void {
     sessionStorage.removeItem(this.refreshTokenKey);
+    sessionStorage.removeItem(this.idTokenKey);
+    sessionStorage.removeItem('identity-hub.pkce-verifier');
+    sessionStorage.removeItem('identity-hub.oauth-state');
+    sessionStorage.removeItem('identity-hub.oidc-nonce');
+    if (!preserveLogoutState) {
+      sessionStorage.removeItem(this.logoutStateKey);
+    }
     this.loading = false;
     this.profile = null;
     this.resource = null;

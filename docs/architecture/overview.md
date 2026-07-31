@@ -8,18 +8,19 @@ mantém relações de acesso por tenant e emite credenciais verificáveis para
 resource servers.
 
 O repositório contém um backend Spring Boot 4.0.7/Java 17 e um frontend Angular
-21 baseado no TailAdmin. As três primeiras fatias verticais implementam
+21 baseado no TailAdmin. As quatro primeiras fatias verticais implementam
 Authorization Code com PKCE, login e consentimento por interação opaca,
 persistência PostgreSQL, metadata, JWK Set, ID token, access token, UserInfo e
 uma API protegida por issuer, audience e escopo. Refresh tokens opacos são
 rotacionados em famílias transacionais, com replay e revogação. Tenancy,
-administração, logout OIDC, MFA, rotação durável de chaves e operação de
-produção continuam planejados.
+administração, logout global entre clientes, MFA, rotação durável de chaves e
+operação de produção continuam planejados.
 
-As evidências e limitações dos incrementos executáveis estão em
-[`docs/vertical-slices/001-authorization-code-pkce.md`](../vertical-slices/001-authorization-code-pkce.md)
-[`docs/vertical-slices/002-protected-resource-api.md`](../vertical-slices/002-protected-resource-api.md)
-e [`docs/vertical-slices/003-rotating-refresh-tokens.md`](../vertical-slices/003-rotating-refresh-tokens.md).
+As evidências e limitações dos incrementos executáveis estão nas fatias
+[001](../vertical-slices/001-authorization-code-pkce.md),
+[002](../vertical-slices/002-protected-resource-api.md),
+[003](../vertical-slices/003-rotating-refresh-tokens.md) e
+[004](../vertical-slices/004-oidc-logout.md).
 
 ## Objetivos arquiteturais
 

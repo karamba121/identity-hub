@@ -77,6 +77,66 @@ class RefreshTokenLifecycleIntegrationTests {
     }
 
     @Test
+    void revokesTokensAndEndsTheSsoSessionThroughOidcLogout() throws Exception {
+        TokenPair tokens = issueTokens();
+
+        mockMvc.perform(get("/.well-known/openid-configuration"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath(
+                        "$.end_session_endpoint").value("http://localhost/connect/logout"));
+
+        mockMvc.perform(post("/oauth2/revoke")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("client_id", "identity-hub-demo")
+                        .param("token_type_hint", "refresh_token")
+                        .param("token", tokens.refreshToken()))
+                .andExpect(status().isOk());
+
+        MvcResult logout = mockMvc.perform(get("/connect/logout")
+                        .session(tokens.session())
+                        .queryParam("id_token_hint", tokens.idToken())
+                        .queryParam("post_logout_redirect_uri", "http://localhost:4200/demo/logout")
+                        .queryParam("state", "logout-state"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        assertThat(logout.getResponse().getRedirectedUrl())
+                .isEqualTo("http://localhost:4200/demo/logout?state=logout-state");
+        assertThat(tokens.session().isInvalid()).isTrue();
+        refresh(tokens.refreshToken(), 400);
+
+        MvcResult authorizationAfterLogout = mockMvc.perform(get("/oauth2/authorize")
+                        .queryParam("response_type", "code")
+                        .queryParam("client_id", "identity-hub-demo")
+                        .queryParam("redirect_uri", "http://localhost:4200/demo/callback")
+                        .queryParam("scope", "openid")
+                        .queryParam("state", "new-state")
+                        .queryParam("nonce", "new-nonce")
+                        .queryParam("code_challenge", "challenge-with-more-than-forty-three-characters-123")
+                        .queryParam("code_challenge_method", "S256"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+        assertThat(queryParameter(
+                authorizationAfterLogout.getResponse().getRedirectedUrl(), "interaction_id"))
+                .isNotBlank();
+    }
+
+    @Test
+    void doesNotRedirectLogoutToAnUnregisteredUri() throws Exception {
+        TokenPair tokens = issueTokens();
+
+        MvcResult logout = mockMvc.perform(get("/connect/logout")
+                        .session(tokens.session())
+                        .queryParam("id_token_hint", tokens.idToken())
+                        .queryParam("post_logout_redirect_uri", "https://attacker.example/callback")
+                        .queryParam("state", "attacker-state"))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        assertThat(logout.getResponse().getRedirectedUrl()).isNull();
+    }
+
+    @Test
     void allowsOnlyOneSuccessorWhenRefreshTokenIsUsedConcurrently() throws Exception {
         String refreshToken = issueTokens().refreshToken();
         CyclicBarrier start = new CyclicBarrier(2);
@@ -179,7 +239,9 @@ class RefreshTokenLifecycleIntegrationTests {
         String body = token.getResponse().getContentAsString();
         return new TokenPair(
                 JsonPath.read(body, "$.access_token"),
-                JsonPath.read(body, "$.refresh_token"));
+                JsonPath.read(body, "$.refresh_token"),
+                JsonPath.read(body, "$.id_token"),
+                session);
     }
 
     private MvcResult refresh(String refreshToken, int expectedStatus) throws Exception {
@@ -210,6 +272,10 @@ class RefreshTokenLifecycleIntegrationTests {
         return parameters;
     }
 
-    private record TokenPair(String accessToken, String refreshToken) {
+    private record TokenPair(
+            String accessToken,
+            String refreshToken,
+            String idToken,
+            MockHttpSession session) {
     }
 }

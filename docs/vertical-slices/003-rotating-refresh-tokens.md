@@ -55,8 +55,9 @@ tokens.
 
 ## Limites ainda abertos
 
-- logout OIDC e encerramento do cookie de autenticação não fazem parte desta
-  fatia; revogar a família OAuth não encerra a sessão SSO do navegador;
+- logout OIDC e encerramento do cookie foram entregues na
+  [fatia 004](004-oidc-logout.md); permanecem separados da revogação no
+  protocolo e coordenados pelo cliente;
 - indisponibilidade parcial e métricas específicas de rotação ainda não foram
   exercitadas;
 - PostgreSQL real deve continuar sendo validado no deploy conjunto; H2 cobre a

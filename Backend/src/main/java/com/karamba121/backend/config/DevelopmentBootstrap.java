@@ -45,7 +45,7 @@ public class DevelopmentBootstrap implements ApplicationRunner {
         RegisteredClient existingClient = clients.findByClientId(bootstrap.clientId());
         if (!bootstrap.enabled()) {
             if (existingClient != null) {
-                clients.save(configureRefreshTokens(existingClient));
+                clients.save(configureClientSecurity(existingClient));
             }
             return;
         }
@@ -64,6 +64,7 @@ public class DevelopmentBootstrap implements ApplicationRunner {
                     .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                     .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
                     .redirectUri(bootstrap.redirectUri())
+                    .postLogoutRedirectUri(bootstrap.postLogoutRedirectUri())
                     .scope(OidcScopes.OPENID)
                     .scope(OidcScopes.PROFILE)
                     .scope(OidcScopes.EMAIL)
@@ -81,13 +82,14 @@ public class DevelopmentBootstrap implements ApplicationRunner {
                     .build();
             clients.save(client);
         } else {
-            clients.save(configureRefreshTokens(existingClient));
+            clients.save(configureClientSecurity(existingClient));
         }
     }
 
-    private RegisteredClient configureRefreshTokens(RegisteredClient existingClient) {
+    private RegisteredClient configureClientSecurity(RegisteredClient existingClient) {
         return RegisteredClient.from(existingClient)
                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+                .postLogoutRedirectUri(properties.bootstrap().postLogoutRedirectUri())
                 .scope("demo.read")
                 .tokenSettings(TokenSettings.builder()
                         .authorizationCodeTimeToLive(Duration.ofMinutes(2))
