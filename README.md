@@ -1,5 +1,13 @@
 # Identity Hub
 
+[![CI](https://github.com/karamba121/identity-hub/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/karamba121/identity-hub/actions/workflows/ci.yml)
+![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
+![Java](https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4-6DB33F?logo=springboot)
+![OAuth 2.1](https://img.shields.io/badge/OAuth-2.1-3C3C3D)
+![OpenID Connect](https://img.shields.io/badge/OpenID-Connect-F78C40?logo=openid)
+![License](https://img.shields.io/github/license/karamba121/identity-hub)
+
 Provedor de identidade e acesso empresarial construído com Java e Spring para
 demonstrar, de ponta a ponta, como autenticação, autorização e federação devem
 ser tratadas além da simples emissão de um JWT.
