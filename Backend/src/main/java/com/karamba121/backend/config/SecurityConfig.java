@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -27,6 +28,7 @@ import org.springframework.security.config.annotation.web.configurers.oauth2.ser
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtValidationException;
 import org.springframework.security.oauth2.jwt.JwtValidators;
@@ -39,10 +41,15 @@ import org.springframework.security.oauth2.server.authorization.JdbcOAuth2Author
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2RefreshTokenAuthenticationProvider;
 import org.springframework.security.oauth2.server.authorization.client.JdbcRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
+import org.springframework.security.oauth2.server.authorization.token.JwtGenerator;
+import org.springframework.security.oauth2.server.authorization.token.DelegatingOAuth2TokenGenerator;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2AccessTokenGenerator;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenGenerator;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
@@ -52,11 +59,19 @@ import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import com.karamba121.backend.features.identity.IdentityUserDetailsService;
 import com.karamba121.backend.features.identity.IdentityUserRepository;
 import com.karamba121.backend.features.interaction.LoginInteractionEntryPoint;
 import com.karamba121.backend.features.resource.DemoResourceContract;
+import com.karamba121.backend.features.session.RefreshTokenFamilyRepository;
+import com.karamba121.backend.features.session.RefreshTokenHistoryRepository;
+import com.karamba121.backend.features.session.RefreshTokenTrackingAuthorizationService;
+import com.karamba121.backend.features.session.TransactionalRefreshTokenAuthenticationProvider;
+import com.karamba121.backend.features.session.PublicClientRefreshTokenGenerator;
+import com.karamba121.backend.features.session.PublicRefreshClientAuthenticationConverter;
+import com.karamba121.backend.features.session.PublicRefreshClientAuthenticationProvider;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.JWKSource;
@@ -69,9 +84,28 @@ public class SecurityConfig {
     @Order(1)
     SecurityFilterChain authorizationServerSecurityFilterChain(
             HttpSecurity http,
-            LoginInteractionEntryPoint loginEntryPoint) throws Exception {
+            LoginInteractionEntryPoint loginEntryPoint,
+            PlatformTransactionManager transactionManager,
+            OAuth2TokenGenerator<?> tokenGenerator,
+            RegisteredClientRepository registeredClients) throws Exception {
         http.oauth2AuthorizationServer(authorizationServer -> authorizationServer
+                .tokenGenerator(tokenGenerator)
+                .clientAuthentication(client -> client
+                        .authenticationConverters(converters -> converters.add(0,
+                                new PublicRefreshClientAuthenticationConverter()))
+                        .authenticationProviders(providers -> providers.add(0,
+                                new PublicRefreshClientAuthenticationProvider(registeredClients))))
                 .authorizationEndpoint(endpoint -> endpoint.consentPage("/oauth2/consent"))
+                .tokenEndpoint(endpoint -> endpoint.authenticationProviders(providers -> {
+                    for (int index = 0; index < providers.size(); index++) {
+                        AuthenticationProvider provider = providers.get(index);
+                        if (provider instanceof OAuth2RefreshTokenAuthenticationProvider) {
+                            providers.set(index, new TransactionalRefreshTokenAuthenticationProvider(
+                                    provider, transactionManager));
+                            break;
+                        }
+                    }
+                }))
                 .oidc(Customizer.withDefaults()));
 
         OAuth2AuthorizationServerConfigurer authorizationServerConfigurer = http
@@ -131,8 +165,12 @@ public class SecurityConfig {
     @Bean
     OAuth2AuthorizationService authorizationService(
             JdbcOperations jdbcOperations,
-            RegisteredClientRepository registeredClientRepository) {
-        return new JdbcOAuth2AuthorizationService(jdbcOperations, registeredClientRepository);
+            RegisteredClientRepository registeredClientRepository,
+            RefreshTokenFamilyRepository families,
+            RefreshTokenHistoryRepository history) {
+        JdbcOAuth2AuthorizationService delegate =
+                new JdbcOAuth2AuthorizationService(jdbcOperations, registeredClientRepository);
+        return new RefreshTokenTrackingAuthorizationService(delegate, families, history);
     }
 
     @Bean
@@ -219,6 +257,18 @@ public class SecurityConfig {
                     .claim("email", user.getEmail())
                     .claim("email_verified", true));
         };
+    }
+
+    @Bean
+    OAuth2TokenGenerator<?> tokenGenerator(
+            JWKSource<SecurityContext> jwkSource,
+            OAuth2TokenCustomizer<JwtEncodingContext> jwtCustomizer) {
+        JwtGenerator jwtGenerator = new JwtGenerator(new NimbusJwtEncoder(jwkSource));
+        jwtGenerator.setJwtCustomizer(jwtCustomizer);
+        return new DelegatingOAuth2TokenGenerator(
+                jwtGenerator,
+                new OAuth2AccessTokenGenerator(),
+                new PublicClientRefreshTokenGenerator());
     }
 
     private static RSAKey generateRsa() {

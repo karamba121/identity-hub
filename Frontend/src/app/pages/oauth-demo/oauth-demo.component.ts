@@ -1,9 +1,11 @@
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { DatePipe } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
 interface TokenResponse {
   access_token: string;
+  refresh_token?: string;
   id_token?: string;
   scope: string;
   token_type: string;
@@ -19,6 +21,7 @@ interface DemoResourceResponse {
 
 @Component({
   selector: 'app-oauth-demo',
+  imports: [DatePipe],
   templateUrl: './oauth-demo.component.html',
 })
 export class OauthDemoComponent implements OnInit {
@@ -26,8 +29,10 @@ export class OauthDemoComponent implements OnInit {
   errorMessage = '';
   profile: Record<string, unknown> | null = null;
   resource: DemoResourceResponse | null = null;
+  sessionExpiresAt: Date | null = null;
 
   private readonly clientId = 'identity-hub-demo';
+  private readonly refreshTokenKey = 'identity-hub.refresh-token';
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -104,6 +109,13 @@ export class OauthDemoComponent implements OnInit {
           this.errorMessage = 'O ID token não corresponde ao fluxo iniciado neste navegador.';
           return;
         }
+        if (!token.refresh_token) {
+          this.loading = false;
+          this.errorMessage = 'O servidor não devolveu o refresh token esperado.';
+          return;
+        }
+        sessionStorage.setItem(this.refreshTokenKey, token.refresh_token);
+        this.updateExpiration(token.expires_in);
         this.loadProfile(token.access_token);
       },
       error: () => {
@@ -111,6 +123,66 @@ export class OauthDemoComponent implements OnInit {
         this.errorMessage = 'O código não pôde ser trocado por tokens.';
       },
     });
+  }
+
+  renewSession(): void {
+    const currentRefreshToken = sessionStorage.getItem(this.refreshTokenKey);
+    if (!currentRefreshToken) {
+      this.errorMessage = 'Não há uma sessão renovável neste navegador.';
+      return;
+    }
+
+    this.loading = true;
+    this.errorMessage = '';
+    const body = new HttpParams()
+      .set('grant_type', 'refresh_token')
+      .set('client_id', this.clientId)
+      .set('refresh_token', currentRefreshToken);
+    const headers = new HttpHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' });
+
+    this.http.post<TokenResponse>('/oauth2/token', body.toString(), { headers }).subscribe({
+      next: token => {
+        if (!token.refresh_token || token.refresh_token === currentRefreshToken) {
+          this.loading = false;
+          this.errorMessage = 'A sessão não foi rotacionada de forma segura.';
+          return;
+        }
+        sessionStorage.setItem(this.refreshTokenKey, token.refresh_token);
+        this.updateExpiration(token.expires_in);
+        this.loadProfile(token.access_token);
+      },
+      error: () => {
+        this.clearLocalSession();
+        this.errorMessage = 'A sessão expirou, foi revogada ou houve reutilização do refresh token.';
+      },
+    });
+  }
+
+  revokeSession(): void {
+    const refreshToken = sessionStorage.getItem(this.refreshTokenKey);
+    if (!refreshToken) {
+      this.clearLocalSession();
+      return;
+    }
+
+    this.loading = true;
+    this.errorMessage = '';
+    const body = new HttpParams()
+      .set('token', refreshToken)
+      .set('token_type_hint', 'refresh_token')
+      .set('client_id', this.clientId);
+    const headers = new HttpHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' });
+    this.http.post('/oauth2/revoke', body.toString(), { headers, responseType: 'text' }).subscribe({
+      next: () => this.clearLocalSession(),
+      error: () => {
+        this.loading = false;
+        this.errorMessage = 'Não foi possível revogar a sessão no servidor.';
+      },
+    });
+  }
+
+  hasRenewableSession(): boolean {
+    return sessionStorage.getItem(this.refreshTokenKey) !== null;
   }
 
   private loadProfile(accessToken: string): void {
@@ -173,5 +245,17 @@ export class OauthDemoComponent implements OnInit {
   private hasExpectedAudience(audience: unknown): boolean {
     return audience === this.clientId
       || (Array.isArray(audience) && audience.includes(this.clientId));
+  }
+
+  private updateExpiration(expiresIn: number): void {
+    this.sessionExpiresAt = new Date(Date.now() + expiresIn * 1000);
+  }
+
+  private clearLocalSession(): void {
+    sessionStorage.removeItem(this.refreshTokenKey);
+    this.loading = false;
+    this.profile = null;
+    this.resource = null;
+    this.sessionExpiresAt = null;
   }
 }

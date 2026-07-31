@@ -42,7 +42,11 @@ public class DevelopmentBootstrap implements ApplicationRunner {
     @Transactional
     public void run(ApplicationArguments args) {
         IdentityHubProperties.Bootstrap bootstrap = properties.bootstrap();
+        RegisteredClient existingClient = clients.findByClientId(bootstrap.clientId());
         if (!bootstrap.enabled()) {
+            if (existingClient != null) {
+                clients.save(configureRefreshTokens(existingClient));
+            }
             return;
         }
 
@@ -52,13 +56,13 @@ public class DevelopmentBootstrap implements ApplicationRunner {
                         bootstrap.userName(),
                         passwordEncoder.encode(bootstrap.userPassword()))));
 
-        RegisteredClient existingClient = clients.findByClientId(bootstrap.clientId());
         if (existingClient == null) {
             RegisteredClient client = RegisteredClient.withId(UUID.randomUUID().toString())
                     .clientId(bootstrap.clientId())
                     .clientName(bootstrap.clientName())
                     .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
                     .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                    .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
                     .redirectUri(bootstrap.redirectUri())
                     .scope(OidcScopes.OPENID)
                     .scope(OidcScopes.PROFILE)
@@ -71,13 +75,26 @@ public class DevelopmentBootstrap implements ApplicationRunner {
                     .tokenSettings(TokenSettings.builder()
                             .authorizationCodeTimeToLive(Duration.ofMinutes(2))
                             .accessTokenTimeToLive(Duration.ofMinutes(5))
+                            .refreshTokenTimeToLive(Duration.ofHours(8))
+                            .reuseRefreshTokens(false)
                             .build())
                     .build();
             clients.save(client);
-        } else if (!existingClient.getScopes().contains("demo.read")) {
-            clients.save(RegisteredClient.from(existingClient)
-                    .scope("demo.read")
-                    .build());
+        } else {
+            clients.save(configureRefreshTokens(existingClient));
         }
+    }
+
+    private RegisteredClient configureRefreshTokens(RegisteredClient existingClient) {
+        return RegisteredClient.from(existingClient)
+                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+                .scope("demo.read")
+                .tokenSettings(TokenSettings.builder()
+                        .authorizationCodeTimeToLive(Duration.ofMinutes(2))
+                        .accessTokenTimeToLive(Duration.ofMinutes(5))
+                        .refreshTokenTimeToLive(Duration.ofHours(8))
+                        .reuseRefreshTokens(false)
+                        .build())
+                .build();
     }
 }

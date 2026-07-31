@@ -134,6 +134,7 @@ class AuthorizationFlowIntegrationTests {
                         .param("code_verifier", verifier))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.access_token").isNotEmpty())
+                .andExpect(jsonPath("$.refresh_token").isNotEmpty())
                 .andExpect(jsonPath("$.id_token").isNotEmpty())
                 .andReturn();
         String accessToken = JsonPath.read(token.getResponse().getContentAsString(), "$.access_token");

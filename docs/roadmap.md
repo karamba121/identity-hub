@@ -107,13 +107,15 @@ demonstrativo exercem responsabilidades diferentes.
 
 ## Fase 4 — Sessões, refresh tokens e revogação `MVP`
 
-- [ ] definir política de sessão, expiração e reautenticação;
-- [ ] implementar refresh token apenas para clientes elegíveis;
-- [ ] rotacionar refresh token a cada uso;
-- [ ] detectar reutilização e revogar a família comprometida;
-- [ ] disponibilizar revogação padronizada;
+- [x] definir política inicial de access token de 5 minutos e refresh token de
+  8 horas, exigindo nova autenticação após expiração ou comprometimento;
+- [x] implementar refresh token apenas para clientes elegíveis;
+- [x] rotacionar refresh token a cada uso;
+- [x] detectar reutilização e revogar a família comprometida;
+- [x] disponibilizar revogação padronizada;
 - [ ] implementar logout e encerramento de sessões;
-- [ ] testar concorrência, replay, revogação e indisponibilidade parcial;
+- [x] testar concorrência, replay e revogação;
+- [ ] testar indisponibilidade parcial;
 - [ ] expor métricas sem cardinalidade ou dados sensíveis excessivos.
 
 **Critério de aceite:** testes concorrentes demonstram um único sucessor por
