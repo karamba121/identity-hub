@@ -8,7 +8,7 @@ mantém relações de acesso por tenant e emite credenciais verificáveis para
 resource servers.
 
 O repositório contém um backend Spring Boot 4.0.7/Java 17 e um frontend Angular
-21 baseado no TailAdmin. As nove primeiras fatias verticais implementam
+21 baseado no TailAdmin. As dez primeiras fatias verticais implementam
 Authorization Code com PKCE, login e consentimento por interação opaca,
 persistência PostgreSQL, metadata, JWK Set, ID token, access token, UserInfo e
 uma API protegida por issuer, audience e escopo. Refresh tokens opacos são
@@ -31,8 +31,9 @@ As evidências e limitações dos incrementos executáveis estão nas fatias
 [005](../vertical-slices/005-session-observability-and-resilience.md),
 [006](../vertical-slices/006-tenant-memberships.md),
 [007](../vertical-slices/007-permission-catalog.md),
-[008](../vertical-slices/008-tenant-administrative-roles.md) e
-[009](../vertical-slices/009-first-administrator-bootstrap.md).
+[008](../vertical-slices/008-tenant-administrative-roles.md),
+[009](../vertical-slices/009-first-administrator-bootstrap.md) e
+[010](../vertical-slices/010-last-tenant-administrator.md).
 
 ## Objetivos arquiteturais
 
@@ -350,6 +351,10 @@ O bootstrap administrativo adquire um lock pessimista persistido antes de
 consultar ou criar usuário, tenant, papel e membership, serializando instâncias
 concorrentes. O lock registra o usuário e tenant iniciais; execuções seguintes
 reconciliam esse mesmo contexto e ignoram configurações divergentes.
+Rebaixamento, suspensão e remoção de memberships administrativas também
+adquirem lock pessimista no tenant antes de contar administradores válidos. Isso
+serializa mutações concorrentes e impede que duas operações deixem o tenant sem
+um usuário habilitado com membership ativa e papel `administrator`.
 
 ## Tokens e chaves
 

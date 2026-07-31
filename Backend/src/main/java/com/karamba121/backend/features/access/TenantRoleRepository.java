@@ -9,4 +9,6 @@ public interface TenantRoleRepository extends JpaRepository<TenantRole, String> 
 
     @EntityGraph(attributePaths = "permissions")
     Optional<TenantRole> findByTenantIdAndCode(String tenantId, String code);
+
+    Optional<TenantRole> findByIdAndTenantId(String roleId, String tenantId);
 }
