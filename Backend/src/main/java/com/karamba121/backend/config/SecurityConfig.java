@@ -63,6 +63,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import com.karamba121.backend.features.identity.IdentityUserDetailsService;
 import com.karamba121.backend.features.identity.IdentityUserRepository;
+import com.karamba121.backend.features.access.AdminResourceContract;
 import com.karamba121.backend.features.interaction.LoginInteractionEntryPoint;
 import com.karamba121.backend.features.resource.DemoResourceContract;
 import com.karamba121.backend.features.session.RefreshTokenFamilyRepository;
@@ -120,6 +121,22 @@ public class SecurityConfig {
 
     @Bean
     @Order(2)
+    SecurityFilterChain administrativeResourceSecurityFilterChain(
+            HttpSecurity http,
+            @Qualifier("adminResourceJwtDecoder") JwtDecoder adminResourceJwtDecoder) throws Exception {
+        http.securityMatcher("/api/v1/admin/**")
+                .authorizeHttpRequests(authorize -> authorize
+                        .anyRequest().hasAuthority("SCOPE_" + AdminResourceContract.SCOPE))
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .csrf(AbstractHttpConfigurer::disable)
+                .oauth2ResourceServer(resourceServer -> resourceServer
+                        .jwt(jwt -> jwt.decoder(adminResourceJwtDecoder)));
+        return http.build();
+    }
+
+    @Bean
+    @Order(3)
     SecurityFilterChain demoResourceSecurityFilterChain(
             HttpSecurity http,
             @Qualifier("resourceServerJwtDecoder") JwtDecoder resourceServerJwtDecoder) throws Exception {
@@ -135,7 +152,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    @Order(3)
+    @Order(4)
     SecurityFilterChain applicationSecurityFilterChain(HttpSecurity http) throws Exception {
         CookieCsrfTokenRepository csrfRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         csrfRepository.setCookiePath("/");
@@ -244,6 +261,29 @@ public class SecurityConfig {
         };
     }
 
+    @Bean("adminResourceJwtDecoder")
+    JwtDecoder adminResourceJwtDecoder(
+            JWKSource<SecurityContext> jwkSource,
+            IdentityHubProperties properties) {
+        JwtDecoder delegate = OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource);
+        OAuth2TokenValidator<Jwt> issuer = JwtValidators.createDefaultWithIssuer(properties.issuer());
+        OAuth2TokenValidator<Jwt> audience = token -> token.getAudience().contains(AdminResourceContract.AUDIENCE)
+                ? OAuth2TokenValidatorResult.success()
+                : OAuth2TokenValidatorResult.failure(new OAuth2Error(
+                        "invalid_token",
+                        "Access token não foi emitido para a API administrativa",
+                        null));
+        OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(issuer, audience);
+        return encodedToken -> {
+            Jwt jwt = delegate.decode(encodedToken);
+            OAuth2TokenValidatorResult result = validator.validate(jwt);
+            if (result.hasErrors()) {
+                throw new JwtValidationException("Access token inválido", result.getErrors());
+            }
+            return jwt;
+        };
+    }
+
     @Bean
     OAuth2TokenCustomizer<JwtEncodingContext> identityClaimsCustomizer(IdentityUserRepository users) {
         return context -> {
@@ -251,9 +291,17 @@ public class SecurityConfig {
                     && !"id_token".equals(context.getTokenType().getValue())) {
                 return;
             }
-            if (OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())
-                    && context.getAuthorizedScopes().contains(DemoResourceContract.SCOPE)) {
-                context.getClaims().audience(new ArrayList<>(List.of(DemoResourceContract.AUDIENCE)));
+            if (OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
+                List<String> audiences = new ArrayList<>();
+                if (context.getAuthorizedScopes().contains(DemoResourceContract.SCOPE)) {
+                    audiences.add(DemoResourceContract.AUDIENCE);
+                }
+                if (context.getAuthorizedScopes().contains(AdminResourceContract.SCOPE)) {
+                    audiences.add(AdminResourceContract.AUDIENCE);
+                }
+                if (!audiences.isEmpty()) {
+                    context.getClaims().audience(audiences);
+                }
             }
             users.findByEmailIgnoreCase(context.getPrincipal().getName()).ifPresent(user -> context.getClaims()
                     .subject(user.getId())

@@ -40,9 +40,11 @@ tenant, papel e status.
 
 ## Limites ainda abertos
 
-- ainda não existe API administrativa externa; as APIs futuras deverão usar o
-  serviço central desta fatia;
-- permission checks do ator da operação pertencem à próxima fatia;
+- atribuição, suspensão e remoção foram expostas pela
+  [fatia 011](011-tenant-administration-authorization.md); listagem e criação
+  administrativa de memberships ainda não existem;
+- permission checks do ator foram entregues na
+  [fatia 011](011-tenant-administration-authorization.md);
 - alterações diretas no banco não passam pela regra da aplicação;
 - a concorrência foi validada em H2; a prova em PostgreSQL real continua
   dependente da execução do ambiente Compose.

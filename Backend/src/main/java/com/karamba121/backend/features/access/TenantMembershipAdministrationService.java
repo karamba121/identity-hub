@@ -31,7 +31,8 @@ public class TenantMembershipAdministrationService {
         lockTenant(tenantId);
         TenantMembership membership = membership(tenantId, membershipId);
         TenantRole role = roles.findByIdAndTenantId(roleId, tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Papel não encontrado no tenant"));
+                .orElseThrow(() -> new TenantAdministrationResourceNotFoundException(
+                        "Papel não encontrado no tenant"));
         if (isValidAdministrator(membership) && !isAdministrator(role)) {
             requireAnotherValidAdministrator(tenantId);
         }
@@ -60,12 +61,14 @@ public class TenantMembershipAdministrationService {
 
     private void lockTenant(String tenantId) {
         tenants.findByIdForUpdate(tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Tenant não encontrado"));
+                .orElseThrow(() -> new TenantAdministrationResourceNotFoundException(
+                        "Tenant não encontrado"));
     }
 
     private TenantMembership membership(String tenantId, String membershipId) {
         return memberships.findByIdAndTenantId(membershipId, tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Membership não encontrada no tenant"));
+                .orElseThrow(() -> new TenantAdministrationResourceNotFoundException(
+                        "Membership não encontrada no tenant"));
     }
 
     private void requireAnotherValidAdministrator(String tenantId) {

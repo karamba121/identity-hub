@@ -2,6 +2,7 @@ package com.karamba121.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -28,6 +29,12 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.jayway.jsonpath.JsonPath;
+import com.karamba121.backend.features.access.AdminResourceContract;
+import com.karamba121.backend.features.identity.IdentityUserRepository;
+import com.karamba121.backend.features.tenancy.Tenant;
+import com.karamba121.backend.features.tenancy.TenantMembership;
+import com.karamba121.backend.features.tenancy.TenantMembershipRepository;
+import com.karamba121.backend.features.tenancy.TenantRepository;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -40,6 +47,15 @@ class AuthorizationFlowIntegrationTests {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private TenantRepository tenants;
+
+    @Autowired
+    private TenantMembershipRepository memberships;
+
+    @Autowired
+    private IdentityUserRepository users;
+
     @Test
     void completesAuthorizationCodeWithPkceThroughOpaqueInteractions() throws Exception {
         String verifier = "a-secure-verifier-with-more-than-forty-three-characters-123456789";
@@ -50,7 +66,7 @@ class AuthorizationFlowIntegrationTests {
                         .queryParam("response_type", "code")
                         .queryParam("client_id", "identity-hub-demo")
                         .queryParam("redirect_uri", "http://localhost:4200/demo/callback")
-                        .queryParam("scope", "openid profile email demo.read")
+                        .queryParam("scope", "openid profile email demo.read " + AdminResourceContract.SCOPE)
                         .queryParam("state", "browser-state")
                         .queryParam("nonce", "browser-nonce")
                         .queryParam("code_challenge", challenge)
@@ -99,7 +115,7 @@ class AuthorizationFlowIntegrationTests {
         mockMvc.perform(get("/api/v1/interactions/{id}", consentInteractionId).session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.type").value("consent"))
-                .andExpect(jsonPath("$.scopes.length()").value(4));
+                .andExpect(jsonPath("$.scopes.length()").value(5));
 
         MvcResult consent = mockMvc.perform(post("/api/v1/interactions/{id}/consent", consentInteractionId)
                         .session(session)
@@ -150,6 +166,17 @@ class AuthorizationFlowIntegrationTests {
                 .andExpect(jsonPath("$.message").value("Acesso autorizado à API protegida"))
                 .andExpect(jsonPath("$.audience[0]").value("identity-hub-api"))
                 .andExpect(jsonPath("$.scopes").value(org.hamcrest.Matchers.hasItem("demo.read")));
+
+        Tenant tenant = tenants.findBySlugIgnoreCase("identity-hub-demo").orElseThrow();
+        String administratorId = users.findByEmailIgnoreCase("admin@identityhub.local")
+                .orElseThrow()
+                .getId();
+        TenantMembership administrator = memberships.findByTenantIdAndUserId(
+                tenant.getId(), administratorId).orElseThrow();
+        mockMvc.perform(delete("/api/v1/admin/tenants/{tenantId}/memberships/{membershipId}",
+                        tenant.getId(), administrator.getId())
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isConflict());
 
         mockMvc.perform(post("/oauth2/token")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)

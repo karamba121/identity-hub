@@ -14,6 +14,20 @@ public interface TenantMembershipRepository extends JpaRepository<TenantMembersh
 
     Optional<TenantMembership> findByTenantIdAndUserId(String tenantId, String userId);
 
+    @EntityGraph(attributePaths = {"tenant", "user", "role", "role.permissions"})
+    @Query("""
+            select membership from TenantMembership membership
+            where membership.tenant.id = :tenantId
+              and membership.user.id = :userId
+              and membership.status = :membershipStatus
+              and membership.tenant.status = :tenantStatus
+            """)
+    Optional<TenantMembership> findAuthorizationContext(
+            @Param("tenantId") String tenantId,
+            @Param("userId") String userId,
+            @Param("membershipStatus") MembershipStatus membershipStatus,
+            @Param("tenantStatus") TenantStatus tenantStatus);
+
     @EntityGraph(attributePaths = {"tenant", "user", "role"})
     Optional<TenantMembership> findByIdAndTenantId(String membershipId, String tenantId);
 

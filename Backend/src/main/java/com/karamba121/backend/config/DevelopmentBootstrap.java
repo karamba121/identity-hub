@@ -14,6 +14,7 @@ import org.springframework.security.oauth2.server.authorization.settings.ClientS
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.stereotype.Component;
 import com.karamba121.backend.features.access.FirstAdministratorBootstrapService;
+import com.karamba121.backend.features.access.AdminResourceContract;
 
 @Component
 public class DevelopmentBootstrap implements ApplicationRunner {
@@ -57,6 +58,7 @@ public class DevelopmentBootstrap implements ApplicationRunner {
                     .scope(OidcScopes.PROFILE)
                     .scope(OidcScopes.EMAIL)
                     .scope("demo.read")
+                    .scope(AdminResourceContract.SCOPE)
                     .clientSettings(ClientSettings.builder()
                             .requireProofKey(true)
                             .requireAuthorizationConsent(true)
@@ -79,6 +81,7 @@ public class DevelopmentBootstrap implements ApplicationRunner {
                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
                 .postLogoutRedirectUri(properties.bootstrap().postLogoutRedirectUri())
                 .scope("demo.read")
+                .scope(AdminResourceContract.SCOPE)
                 .tokenSettings(TokenSettings.builder()
                         .authorizationCodeTimeToLive(Duration.ofMinutes(2))
                         .accessTokenTimeToLive(Duration.ofMinutes(5))

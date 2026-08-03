@@ -8,7 +8,7 @@ mantém relações de acesso por tenant e emite credenciais verificáveis para
 resource servers.
 
 O repositório contém um backend Spring Boot 4.0.7/Java 17 e um frontend Angular
-21 baseado no TailAdmin. As dez primeiras fatias verticais implementam
+21 baseado no TailAdmin. As onze primeiras fatias verticais implementam
 Authorization Code com PKCE, login e consentimento por interação opaca,
 persistência PostgreSQL, metadata, JWK Set, ID token, access token, UserInfo e
 uma API protegida por issuer, audience e escopo. Refresh tokens opacos são
@@ -18,8 +18,10 @@ persistência. A fundação de tenancy persiste organizações e memberships e
 resolve os vínculos ativos pelo sujeito de um access token validado. Um catálogo
 versionado define as capacidades administrativas conhecidas. Papéis pertencem
 a um único tenant, agregam permissões e são atribuídos às memberships com
-integridade referencial contra cruzamento de tenants. Administração desses
-papéis, seleção de tenant ativo,
+integridade referencial contra cruzamento de tenants. As primeiras mutações
+administrativas de membership exigem access token com audience e scope próprios
+e também a permissão efetiva `tenant.access.manage` em uma membership ativa do
+ator no tenant da rota. CRUD administrativo completo, seleção de tenant ativo,
 logout global entre clientes, MFA, rotação durável de chaves e operação de
 produção continuam planejados.
 
@@ -32,8 +34,9 @@ As evidências e limitações dos incrementos executáveis estão nas fatias
 [006](../vertical-slices/006-tenant-memberships.md),
 [007](../vertical-slices/007-permission-catalog.md),
 [008](../vertical-slices/008-tenant-administrative-roles.md),
-[009](../vertical-slices/009-first-administrator-bootstrap.md) e
-[010](../vertical-slices/010-last-tenant-administrator.md).
+[009](../vertical-slices/009-first-administrator-bootstrap.md),
+[010](../vertical-slices/010-last-tenant-administrator.md) e
+[011](../vertical-slices/011-tenant-administration-authorization.md).
 
 ## Objetivos arquiteturais
 

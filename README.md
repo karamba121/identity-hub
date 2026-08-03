@@ -18,7 +18,7 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** dez fatias verticais executáveis. O repositório contém
+> **Estado atual:** onze fatias verticais executáveis. O repositório contém
 > Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
 > persistência PostgreSQL, tokens OIDC, um cliente público demonstrativo e uma
 > API protegida por issuer, audience e escopo. A terceira fatia acrescenta
@@ -35,7 +35,10 @@ context em um microsserviço artificial.
 > e expõe as concessões efetivas no contexto autenticado. A nona fatia protege
 > o bootstrap do primeiro administrador com exclusão mútua transacional e
 > reconciliação idempotente. A décima fatia protege o último administrador
-> válido contra rebaixamento, suspensão e remoção, inclusive sob concorrência. O
+> válido contra rebaixamento, suspensão e remoção, inclusive sob concorrência. A
+> décima primeira fatia expõe essas mutações por uma API administrativa que
+> combina audience e scope próprios com a permissão efetiva do ator no tenant,
+> rejeitando acesso horizontal entre organizações. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 
@@ -274,7 +277,9 @@ Os papéis administrativos por tenant estão registrados em
 e a proteção concorrente do primeiro administrador em
 [`docs/vertical-slices/009-first-administrator-bootstrap.md`](docs/vertical-slices/009-first-administrator-bootstrap.md).
 A invariância do último administrador está documentada em
-[`docs/vertical-slices/010-last-tenant-administrator.md`](docs/vertical-slices/010-last-tenant-administrator.md).
+[`docs/vertical-slices/010-last-tenant-administrator.md`](docs/vertical-slices/010-last-tenant-administrator.md),
+e a autorização das primeiras operações administrativas em
+[`docs/vertical-slices/011-tenant-administration-authorization.md`](docs/vertical-slices/011-tenant-administration-authorization.md).
 
 CQRS será usado apenas onde modelos de leitura e escrita tiverem necessidades
 materialmente diferentes. Eventos de domínio não serão usados como sinônimo de
