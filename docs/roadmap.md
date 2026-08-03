@@ -143,7 +143,7 @@ cliente de um tenant não observam nem alteram recursos de outro.
 - [x] política de senha e hash resistente;
 - [x] recuperação com token único, curto e armazenado de forma segura;
 - [x] bloqueio progressivo por tentativas inválidas;
-- [ ] rate limiting por sinais combinados, sem depender só de IP;
+- [x] rate limiting por sinais combinados, sem depender só de IP;
 - [ ] invalidação de sessões após eventos críticos;
 - [ ] MFA TOTP opcional com códigos de recuperação;
 - [ ] proteção e auditoria do ciclo de vida do MFA;

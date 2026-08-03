@@ -42,9 +42,11 @@ export class ResetPasswordFormComponent {
       },
       error: (error: HttpErrorResponse) => {
         this.loading = false;
-        this.errorMessage = error.status === 400
-          ? (error.error?.detail ?? 'Informe um e-mail válido.')
-          : 'Não foi possível iniciar a recuperação. Tente novamente.';
+        this.errorMessage = error.status === 429
+          ? (error.error?.detail ?? 'Muitas tentativas. Aguarde antes de tentar novamente.')
+          : error.status === 400
+            ? (error.error?.detail ?? 'Informe um e-mail válido.')
+            : 'Não foi possível iniciar a recuperação. Tente novamente.';
       },
     });
   }

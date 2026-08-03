@@ -12,6 +12,7 @@ public record IdentityHubProperties(
         Registration registration,
         PasswordRecovery passwordRecovery,
         LoginProtection loginProtection,
+        AbuseProtection abuseProtection,
         Bootstrap bootstrap) {
 
     public record Registration(
@@ -26,6 +27,14 @@ public record IdentityHubProperties(
             int failureThreshold,
             Duration initialLockDuration,
             Duration maximumLockDuration) {
+    }
+
+    public record AbuseProtection(
+            Duration window,
+            int subjectLimit,
+            int originLimit,
+            int combinationLimit,
+            int maximumBuckets) {
     }
 
     public record Bootstrap(

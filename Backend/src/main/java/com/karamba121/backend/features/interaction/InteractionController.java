@@ -31,6 +31,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.karamba121.backend.features.abuse.RateLimitService;
+import com.karamba121.backend.features.abuse.RateLimitedOperation;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -45,14 +48,17 @@ public class InteractionController {
     private final AuthorizationInteractionService interactions;
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository securityContextRepository;
+    private final RateLimitService rateLimits;
 
     public InteractionController(
             AuthorizationInteractionService interactions,
             AuthenticationManager authenticationManager,
-            SecurityContextRepository securityContextRepository) {
+            SecurityContextRepository securityContextRepository,
+            RateLimitService rateLimits) {
         this.interactions = interactions;
         this.authenticationManager = authenticationManager;
         this.securityContextRepository = securityContextRepository;
+        this.rateLimits = rateLimits;
     }
 
     @GetMapping("/{interactionId}")
@@ -92,6 +98,7 @@ public class InteractionController {
         if (body == null || !StringUtils.hasText(body.email()) || !StringUtils.hasText(body.password())) {
             throw new InteractionException(HttpStatus.BAD_REQUEST, "E-mail e senha são obrigatórios");
         }
+        rateLimits.check(RateLimitedOperation.LOGIN, request, body.email());
 
         try {
             Authentication authentication = authenticationManager.authenticate(

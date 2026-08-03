@@ -8,7 +8,7 @@ mantém relações de acesso por tenant e emite credenciais verificáveis para
 resource servers.
 
 O repositório contém um backend Spring Boot 4.0.7/Java 17 e um frontend Angular
-21 baseado no TailAdmin. As dezenove primeiras fatias verticais implementam
+21 baseado no TailAdmin. As vinte primeiras fatias verticais implementam
 Authorization Code com PKCE, login e consentimento por interação opaca,
 persistência PostgreSQL, metadata, JWK Set, ID token, access token, UserInfo e
 uma API protegida por issuer, audience e escopo. Refresh tokens opacos são
@@ -38,12 +38,14 @@ entrega por SMTP um link de verificação com token de uso único armazenado
 somente como hash e impede autenticação antes da confirmação. A recuperação de
 senha também usa tokens opacos persistidos apenas como hash, expira em 15
 minutos, revoga solicitações anteriores e não diferencia contas em respostas
-públicas. O login persiste falhas por identidade e aplica bloqueio temporário progressivo
-de um a quinze minutos a partir da quinta falha. A resposta pública permanece
+públicas. O login persiste falhas por identidade e aplica bloqueio temporário
+progressivo de um a quinze minutos a partir da quinta falha. A resposta pública permanece
 genérica e tentativas durante o bloqueio não renovam o prazo. Novas senhas
 seguem uma política central de frases longas e bloqueio contextual, usam
 Argon2id com custo de memória e migram hashes BCrypt legados após autenticação
-válida. Administração de memberships e
+válida. Operações públicas sensíveis também passam por janelas de rate limiting
+que combinam identificador, origem e ambos, mantêm somente chaves hash e expõem
+rejeições por métricas de cardinalidade limitada. Administração de memberships e
 papéis, clientes confidenciais, logout global entre clientes, MFA, rotação
 durável de chaves e operação de produção continuam planejados.
 
@@ -65,8 +67,9 @@ As evidências e limitações dos incrementos executáveis estão nas fatias
 [015](../vertical-slices/015-tenant-horizontal-isolation.md),
 [016](../vertical-slices/016-email-registration-and-verification.md),
 [017](../vertical-slices/017-password-policy-and-hash-evolution.md),
-[018](../vertical-slices/018-secure-password-recovery.md) e
-[019](../vertical-slices/019-progressive-login-lockout.md).
+[018](../vertical-slices/018-secure-password-recovery.md),
+[019](../vertical-slices/019-progressive-login-lockout.md) e
+[020](../vertical-slices/020-combined-signal-rate-limiting.md).
 
 ## Objetivos arquiteturais
 

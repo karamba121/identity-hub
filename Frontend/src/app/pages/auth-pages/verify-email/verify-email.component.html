@@ -32,5 +32,17 @@
         Voltar ao cadastro
       </a>
     }
+
+    @if (state === 'limited') {
+      <h1 class="mb-3 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
+        Muitas tentativas
+      </h1>
+      <p class="mb-6 text-sm text-gray-500 dark:text-gray-400">
+        Aguarde um pouco e abra novamente o link recebido por e-mail.
+      </p>
+      <a routerLink="/demo" class="inline-flex w-full items-center justify-center rounded-lg border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 dark:border-gray-700 dark:text-gray-300">
+        Voltar ao cliente demonstrativo
+      </a>
+    }
   </div>
 </app-auth-page-layout>

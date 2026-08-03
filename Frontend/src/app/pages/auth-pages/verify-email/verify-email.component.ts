@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { switchMap } from 'rxjs';
 import { RegistrationApiService } from '../../../core/services/registration-api.service';
@@ -10,7 +11,7 @@ import { AuthPageLayoutComponent } from '../../../shared/layout/auth-page-layout
   templateUrl: './verify-email.component.html',
 })
 export class VerifyEmailComponent {
-  state: 'verifying' | 'verified' | 'invalid' = 'verifying';
+  state: 'verifying' | 'verified' | 'invalid' | 'limited' = 'verifying';
 
   constructor(
     route: ActivatedRoute,
@@ -26,7 +27,7 @@ export class VerifyEmailComponent {
       switchMap(() => registrations.verify(token)),
     ).subscribe({
       next: () => this.state = 'verified',
-      error: () => this.state = 'invalid',
+      error: (error: HttpErrorResponse) => this.state = error.status === 429 ? 'limited' : 'invalid',
     });
   }
 }

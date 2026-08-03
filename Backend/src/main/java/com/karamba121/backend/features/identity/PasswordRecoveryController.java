@@ -9,6 +9,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.karamba121.backend.features.abuse.RateLimitService;
+import com.karamba121.backend.features.abuse.RateLimitedOperation;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 @RestController
 @RequestMapping("/api/v1/password-recovery")
 public class PasswordRecoveryController {
@@ -17,25 +22,33 @@ public class PasswordRecoveryController {
             "Se houver uma conta elegível, enviaremos um link de recuperação para o e-mail informado.");
 
     private final PasswordRecoveryService recovery;
+    private final RateLimitService rateLimits;
 
-    public PasswordRecoveryController(PasswordRecoveryService recovery) {
+    public PasswordRecoveryController(PasswordRecoveryService recovery, RateLimitService rateLimits) {
         this.recovery = recovery;
+        this.rateLimits = rateLimits;
     }
 
     @PostMapping
-    ResponseEntity<RecoveryAccepted> request(@RequestBody RecoveryRequest request) {
+    ResponseEntity<RecoveryAccepted> request(
+            @RequestBody RecoveryRequest request,
+            HttpServletRequest httpRequest) {
         if (request == null) {
             throw new IllegalArgumentException("Dados da recuperação são obrigatórios");
         }
+        rateLimits.check(RateLimitedOperation.PASSWORD_RECOVERY_REQUEST, httpRequest, request.email());
         recovery.request(request.email());
         return ResponseEntity.accepted().body(ACCEPTED);
     }
 
     @PostMapping("/complete")
-    ResponseEntity<Void> complete(@RequestBody CompleteRecoveryRequest request) {
+    ResponseEntity<Void> complete(
+            @RequestBody CompleteRecoveryRequest request,
+            HttpServletRequest httpRequest) {
         if (request == null) {
             throw new InvalidPasswordRecoveryTokenException();
         }
+        rateLimits.check(RateLimitedOperation.PASSWORD_RECOVERY_COMPLETE, httpRequest, request.token());
         recovery.complete(request.token(), request.newPassword());
         return ResponseEntity.noContent().build();
     }

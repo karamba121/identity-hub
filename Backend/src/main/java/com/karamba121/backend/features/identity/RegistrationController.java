@@ -11,6 +11,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.karamba121.backend.features.abuse.RateLimitService;
+import com.karamba121.backend.features.abuse.RateLimitedOperation;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 @RestController
 @RequestMapping("/api/v1/registrations")
 public class RegistrationController {
@@ -19,9 +24,11 @@ public class RegistrationController {
             "Se o cadastro puder ser criado, enviaremos um link de verificação para o e-mail informado.");
 
     private final RegistrationService registrations;
+    private final RateLimitService rateLimits;
 
-    public RegistrationController(RegistrationService registrations) {
+    public RegistrationController(RegistrationService registrations, RateLimitService rateLimits) {
         this.registrations = registrations;
+        this.rateLimits = rateLimits;
     }
 
     @GetMapping("/csrf")
@@ -30,19 +37,25 @@ public class RegistrationController {
     }
 
     @PostMapping
-    ResponseEntity<RegistrationAccepted> register(@RequestBody RegistrationRequest request) {
+    ResponseEntity<RegistrationAccepted> register(
+            @RequestBody RegistrationRequest request,
+            HttpServletRequest httpRequest) {
         if (request == null) {
             throw new IllegalArgumentException("Dados do cadastro são obrigatórios");
         }
+        rateLimits.check(RateLimitedOperation.REGISTRATION, httpRequest, request.email());
         registrations.register(request.email(), request.displayName(), request.password());
         return ResponseEntity.accepted().body(ACCEPTED);
     }
 
     @PostMapping("/verify")
-    ResponseEntity<Void> verify(@RequestBody VerificationRequest request) {
+    ResponseEntity<Void> verify(
+            @RequestBody VerificationRequest request,
+            HttpServletRequest httpRequest) {
         if (request == null) {
             throw new InvalidEmailVerificationTokenException();
         }
+        rateLimits.check(RateLimitedOperation.EMAIL_VERIFICATION, httpRequest, request.token());
         registrations.verify(request.token());
         return ResponseEntity.noContent().build();
     }

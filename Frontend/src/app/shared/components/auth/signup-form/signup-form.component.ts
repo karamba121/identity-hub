@@ -55,9 +55,11 @@ export class SignupFormComponent {
       },
       error: (error: HttpErrorResponse) => {
         this.loading = false;
-        this.errorMessage = error.status === 400
-          ? (error.error?.detail ?? 'Revise os dados informados.')
-          : 'Não foi possível iniciar o cadastro. Tente novamente.';
+        this.errorMessage = error.status === 429
+          ? (error.error?.detail ?? 'Muitas tentativas. Aguarde antes de tentar novamente.')
+          : error.status === 400
+            ? (error.error?.detail ?? 'Revise os dados informados.')
+            : 'Não foi possível iniciar o cadastro. Tente novamente.';
       },
     });
   }

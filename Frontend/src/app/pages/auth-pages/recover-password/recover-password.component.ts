@@ -45,9 +45,11 @@ export class RecoverPasswordComponent {
       },
       error: (error: HttpErrorResponse) => {
         this.loading = false;
-        this.errorMessage = error.status === 400
-          ? (error.error?.detail ?? 'O link é inválido ou expirou.')
-          : 'Não foi possível redefinir a senha. Tente novamente.';
+        this.errorMessage = error.status === 429
+          ? (error.error?.detail ?? 'Muitas tentativas. Aguarde antes de tentar novamente.')
+          : error.status === 400
+            ? (error.error?.detail ?? 'O link é inválido ou expirou.')
+            : 'Não foi possível redefinir a senha. Tente novamente.';
       },
     });
   }

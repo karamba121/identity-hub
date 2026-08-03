@@ -62,9 +62,11 @@ export class SigninFormComponent {
       next: result => window.location.assign(result.continueUrl),
       error: (error: HttpErrorResponse) => {
         this.loading = false;
-        this.errorMessage = error.status === 401
-          ? 'E-mail ou senha inválidos.'
-          : 'Não foi possível concluir o login. Reinicie a autorização.';
+        this.errorMessage = error.status === 429
+          ? (error.error?.detail ?? 'Muitas tentativas. Aguarde antes de tentar novamente.')
+          : error.status === 401
+            ? 'E-mail ou senha inválidos.'
+            : 'Não foi possível concluir o login. Reinicie a autorização.';
       },
     });
   }
