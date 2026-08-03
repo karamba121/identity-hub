@@ -162,7 +162,7 @@ testes demonstram expiração, uso único e revogação das credenciais temporá
   público e reutilizável na futura fatia de Client Credentials;
 - [x] publicar exemplo de validação de issuer, audience, assinatura e escopos;
 - [x] definir rotação de client secrets com janela controlada;
-- [ ] testar segredo inválido, escopo excessivo e confusão de audience.
+- [x] testar segredo inválido, escopo excessivo e confusão de audience.
 
 **Critério de aceite:** cliente público não consegue usar Client Credentials e
 o resource server rejeita tokens destinados a outra audience.
