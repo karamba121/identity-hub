@@ -132,7 +132,7 @@ rotação e nenhuma sessão revogada volta a conceder acesso.
 - [x] criar CRUD de clientes OAuth com redirect URIs e escopos;
 - [x] criar interface Angular administrativa;
 - [x] auditar alterações com ator, tenant, alvo e resultado;
-- [ ] testar isolamento horizontal entre tenants.
+- [x] testar isolamento horizontal entre tenants.
 
 **Critério de aceite:** uma suíte negativa comprova que usuário, administrador e
 cliente de um tenant não observam nem alteram recursos de outro.

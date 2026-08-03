@@ -8,7 +8,7 @@ mantém relações de acesso por tenant e emite credenciais verificáveis para
 resource servers.
 
 O repositório contém um backend Spring Boot 4.0.7/Java 17 e um frontend Angular
-21 baseado no TailAdmin. As quatorze primeiras fatias verticais implementam
+21 baseado no TailAdmin. As quinze primeiras fatias verticais implementam
 Authorization Code com PKCE, login e consentimento por interação opaca,
 persistência PostgreSQL, metadata, JWK Set, ID token, access token, UserInfo e
 uma API protegida por issuer, audience e escopo. Refresh tokens opacos são
@@ -30,7 +30,10 @@ memória, recupera a sessão por refresh token rotativo e habilita leitura ou
 gestão conforme as permissões do tenant selecionado. As mutações
 administrativas existentes produzem eventos append-only com ator,
 tenant, alvo, resultado, motivo normalizado e correlação, consultáveis apenas
-com `security.audit.read` no próprio tenant. Administração de memberships e
+com `security.audit.read` no próprio tenant. Uma suíte negativa integrada
+exercita as fronteiras de usuário, administrador, cliente OAuth, membership e
+auditoria, incluindo tentativas de usar identificadores estrangeiros sob uma
+rota autorizada. Administração de memberships e
 papéis, clientes confidenciais, logout global entre clientes, MFA, rotação
 durável de chaves e operação de produção continuam planejados.
 
@@ -47,8 +50,9 @@ As evidências e limitações dos incrementos executáveis estão nas fatias
 [010](../vertical-slices/010-last-tenant-administrator.md),
 [011](../vertical-slices/011-tenant-administration-authorization.md),
 [012](../vertical-slices/012-tenant-oauth-client-crud.md),
-[013](../vertical-slices/013-oauth-client-administration-ui.md) e
-[014](../vertical-slices/014-administrative-security-audit.md).
+[013](../vertical-slices/013-oauth-client-administration-ui.md),
+[014](../vertical-slices/014-administrative-security-audit.md) e
+[015](../vertical-slices/015-tenant-horizontal-isolation.md).
 
 ## Objetivos arquiteturais
 
