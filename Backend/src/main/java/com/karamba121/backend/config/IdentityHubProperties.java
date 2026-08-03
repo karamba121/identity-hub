@@ -10,11 +10,15 @@ public record IdentityHubProperties(
         String uiBaseUrl,
         Duration interactionTtl,
         Registration registration,
+        PasswordRecovery passwordRecovery,
         Bootstrap bootstrap) {
 
     public record Registration(
             Duration verificationTtl,
             String mailFrom) {
+    }
+
+    public record PasswordRecovery(Duration tokenTtl) {
     }
 
     public record Bootstrap(

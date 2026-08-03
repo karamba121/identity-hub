@@ -18,7 +18,7 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** dezessete fatias verticais executáveis. O repositório contém
+> **Estado atual:** dezoito fatias verticais executáveis. O repositório contém
 > Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
 > persistência PostgreSQL, tokens OIDC, um cliente público demonstrativo e uma
 > API protegida por issuer, audience e escopo. A terceira fatia acrescenta
@@ -53,7 +53,9 @@ context em um microsserviço artificial.
 > de uso único, com token persistido somente como hash, envio SMTP configurável
 > e bloqueio de login enquanto a conta estiver pendente. A décima sétima fatia
 > centraliza a política de senha, adota Argon2id para novas credenciais e migra
-> hashes BCrypt legados depois de uma autenticação válida. O
+> hashes BCrypt legados depois de uma autenticação válida. A décima oitava
+> fatia entrega recuperação de senha sem enumeração de contas, com link curto,
+> expirável e de uso único, persistido somente como hash. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 
@@ -307,6 +309,8 @@ O cadastro e a confirmação de e-mail estão documentados em
 [`docs/vertical-slices/016-email-registration-and-verification.md`](docs/vertical-slices/016-email-registration-and-verification.md).
 A política de senha e a evolução de hashes estão documentadas em
 [`docs/vertical-slices/017-password-policy-and-hash-evolution.md`](docs/vertical-slices/017-password-policy-and-hash-evolution.md).
+A recuperação segura de senha está documentada em
+[`docs/vertical-slices/018-secure-password-recovery.md`](docs/vertical-slices/018-secure-password-recovery.md).
 
 CQRS será usado apenas onde modelos de leitura e escrita tiverem necessidades
 materialmente diferentes. Eventos de domínio não serão usados como sinônimo de

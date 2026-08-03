@@ -168,6 +168,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/registrations/csrf").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/registrations", "/api/v1/registrations/verify")
                                 .permitAll()
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/v1/password-recovery", "/api/v1/password-recovery/complete")
+                                .permitAll()
                         .anyRequest().authenticated())
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfRepository)

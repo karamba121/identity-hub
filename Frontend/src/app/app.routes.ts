@@ -5,6 +5,7 @@ import { ImageGeneratorComponent } from './pages/ai/image-generator/image-genera
 import { TextGeneratorComponent } from './pages/ai/text-generator/text-generator.component';
 import { VideoGeneratorComponent } from './pages/ai/video-generator/video-generator.component';
 import { ResetPasswordComponent } from './pages/auth-pages/reset-password/reset-password.component';
+import { RecoverPasswordComponent } from './pages/auth-pages/recover-password/recover-password.component';
 import { SignInComponent } from './pages/auth-pages/sign-in/sign-in.component';
 import { SignUpComponent } from './pages/auth-pages/sign-up/sign-up.component';
 import { TwoStepVerificationComponent } from './pages/auth-pages/two-step-verification/two-step-verification.component';
@@ -614,7 +615,12 @@ export const routes: Routes = [
   {
     path:'reset-password',
     component:ResetPasswordComponent,
-    title:'Angular Reset Password Dashboard | TailAdmin - Angular Admin Dashboard Template'
+    title:'Recuperar senha | Identity Hub'
+  },
+  {
+    path:'recover-password',
+    component:RecoverPasswordComponent,
+    title:'Definir nova senha | Identity Hub'
   },
   {
     path:'two-step-verification',
