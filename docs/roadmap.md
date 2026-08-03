@@ -130,7 +130,7 @@ rotação e nenhuma sessão revogada volta a conceder acesso.
 - [x] impedir remoção ou rebaixamento do último administrador válido;
 - [x] aplicar tenant e permission checks nas APIs administrativas;
 - [x] criar CRUD de clientes OAuth com redirect URIs e escopos;
-- [ ] criar interface Angular administrativa;
+- [x] criar interface Angular administrativa;
 - [ ] auditar alterações com ator, tenant, alvo e resultado;
 - [ ] testar isolamento horizontal entre tenants.
 

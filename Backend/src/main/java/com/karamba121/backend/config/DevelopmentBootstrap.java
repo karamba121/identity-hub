@@ -63,6 +63,7 @@ public class DevelopmentBootstrap implements ApplicationRunner {
                     .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                     .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
                     .redirectUri(bootstrap.redirectUri())
+                    .redirectUri(adminRedirectUri())
                     .postLogoutRedirectUri(bootstrap.postLogoutRedirectUri())
                     .scope(OidcScopes.OPENID)
                     .scope(OidcScopes.PROFILE)
@@ -90,6 +91,7 @@ public class DevelopmentBootstrap implements ApplicationRunner {
     private RegisteredClient configureClientSecurity(RegisteredClient existingClient) {
         return RegisteredClient.from(existingClient)
                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+                .redirectUri(adminRedirectUri())
                 .postLogoutRedirectUri(properties.bootstrap().postLogoutRedirectUri())
                 .scope("demo.read")
                 .scope(AdminResourceContract.SCOPE)
@@ -100,6 +102,12 @@ public class DevelopmentBootstrap implements ApplicationRunner {
                         .reuseRefreshTokens(false)
                         .build())
                 .build();
+    }
+
+    private String adminRedirectUri() {
+        String baseUrl = properties.uiBaseUrl();
+        return (baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl)
+                + "/admin/oauth-clients/callback";
     }
 
     private void linkClientToBootstrapTenant(

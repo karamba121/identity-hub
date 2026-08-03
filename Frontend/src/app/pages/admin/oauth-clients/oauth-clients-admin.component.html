@@ -1,0 +1,185 @@
+<app-page-breadcrumb pageTitle="Clientes OAuth" />
+
+<div class="space-y-6">
+  @if (errorMessage) {
+    <div class="rounded-xl border border-error-200 bg-error-50 px-4 py-3 text-sm text-error-700 dark:border-error-900/40 dark:bg-error-950/30 dark:text-error-300" role="alert">
+      {{ errorMessage }}
+    </div>
+  }
+  @if (successMessage) {
+    <div class="rounded-xl border border-success-200 bg-success-50 px-4 py-3 text-sm text-success-700 dark:border-success-900/40 dark:bg-success-950/30 dark:text-success-300" role="status">
+      {{ successMessage }}
+    </div>
+  }
+
+  @if (!authenticated) {
+    <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+      <div class="grid gap-8 px-6 py-10 lg:grid-cols-[1.4fr_1fr] lg:px-10">
+        <div>
+          <span class="inline-flex rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
+            Administração segura
+          </span>
+          <h2 class="mt-4 text-2xl font-semibold text-gray-900 dark:text-white">Gerencie clientes sem expor segredos no navegador</h2>
+          <p class="mt-3 max-w-2xl text-sm leading-6 text-gray-600 dark:text-gray-400">
+            A área usa Authorization Code com PKCE e solicita somente o escopo administrativo. As permissões efetivas continuam sendo verificadas pelo backend em cada tenant.
+          </p>
+          <button type="button" (click)="signIn()" [disabled]="loading"
+            class="mt-6 inline-flex items-center justify-center rounded-lg bg-brand-500 px-5 py-3 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60">
+            {{ loading ? 'Verificando sessão...' : 'Entrar como administrador' }}
+          </button>
+        </div>
+        <div class="rounded-xl border border-gray-100 bg-gray-50 p-5 dark:border-gray-800 dark:bg-gray-900/60">
+          <p class="text-sm font-semibold text-gray-900 dark:text-white">Controles aplicados</p>
+          <ul class="mt-4 space-y-3 text-sm text-gray-600 dark:text-gray-400">
+            <li>Audience e escopo administrativos</li>
+            <li>Permissões de leitura e gestão separadas</li>
+            <li>Isolamento pelo tenant selecionado</li>
+            <li>Redirect URIs exatas e PKCE obrigatório</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  } @else {
+    <section class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div class="w-full max-w-xl">
+          <label for="tenant" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Organização ativa</label>
+          <select id="tenant" [(ngModel)]="selectedTenantId" (ngModelChange)="tenantChanged()"
+            class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-hidden focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:text-white">
+            @for (tenant of tenants; track tenant.tenantId) {
+              <option [value]="tenant.tenantId">{{ tenant.displayName }} · {{ tenant.roleDisplayName }}</option>
+            }
+          </select>
+          @if (selectedTenant) {
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              {{ selectedTenant.slug }} · {{ selectedTenant.permissions.length }} permissões efetivas
+            </p>
+          }
+        </div>
+        <button type="button" (click)="signOut()"
+          class="inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.04]">
+          Encerrar sessão administrativa
+        </button>
+      </div>
+    </section>
+
+    @if (tenants.length === 0) {
+      <section class="rounded-2xl border border-warning-200 bg-warning-50 p-6 text-sm text-warning-800 dark:border-warning-900/40 dark:bg-warning-950/20 dark:text-warning-200">
+        Sua identidade não possui memberships administrativas ativas.
+      </section>
+    } @else if (!canRead) {
+      <section class="rounded-2xl border border-warning-200 bg-warning-50 p-6 text-sm text-warning-800 dark:border-warning-900/40 dark:bg-warning-950/20 dark:text-warning-200">
+        Você participa desta organização, mas não possui a permissão <code>oauth.clients.read</code>.
+      </section>
+    } @else {
+      <div class="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
+        <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+          <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-gray-800 sm:px-6">
+            <div>
+              <h2 class="font-semibold text-gray-900 dark:text-white">Clientes cadastrados</h2>
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ clients.length }} cliente(s) neste tenant</p>
+            </div>
+            <button type="button" (click)="loadClients()" [disabled]="loading"
+              class="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-300">
+              Atualizar
+            </button>
+          </div>
+
+          @if (loading) {
+            <div class="px-6 py-12 text-center text-sm text-gray-500">Carregando clientes...</div>
+          } @else if (clients.length === 0) {
+            <div class="px-6 py-12 text-center">
+              <p class="font-medium text-gray-800 dark:text-white">Nenhum cliente OAuth neste tenant</p>
+              <p class="mt-2 text-sm text-gray-500">Use o formulário ao lado para cadastrar o primeiro cliente público.</p>
+            </div>
+          } @else {
+            <div class="divide-y divide-gray-100 dark:divide-gray-800">
+              @for (client of clients; track client.clientId) {
+                <article class="px-5 py-5 sm:px-6">
+                  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="min-w-0">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <h3 class="truncate font-medium text-gray-900 dark:text-white">{{ client.clientName }}</h3>
+                        <span class="rounded-full bg-success-50 px-2.5 py-0.5 text-xs font-medium text-success-700 dark:bg-success-500/10 dark:text-success-400">Público · PKCE</span>
+                      </div>
+                      <p class="mt-1 font-mono text-xs text-gray-500 dark:text-gray-400">{{ client.clientId }}</p>
+                      <div class="mt-3 flex flex-wrap gap-1.5">
+                        @for (scope of client.scopes; track scope) {
+                          <span class="rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">{{ scope }}</span>
+                        }
+                      </div>
+                      <p class="mt-3 break-all text-xs text-gray-500">{{ client.redirectUris[0] }}</p>
+                      <p class="mt-2 text-xs text-gray-400">Criado em {{ client.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
+                    </div>
+                    @if (canManage) {
+                      <div class="flex shrink-0 gap-2">
+                        <button type="button" (click)="edit(client)" class="rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300">Editar</button>
+                        <button type="button" (click)="remove(client)" class="rounded-lg border border-error-200 px-3 py-2 text-xs font-medium text-error-600 hover:bg-error-50 dark:border-error-900/50 dark:text-error-400">Remover</button>
+                      </div>
+                    }
+                  </div>
+                </article>
+              }
+            </div>
+          }
+        </section>
+
+        <section class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h2 class="font-semibold text-gray-900 dark:text-white">{{ editingClientId ? 'Editar cliente' : 'Novo cliente público' }}</h2>
+              <p class="mt-1 text-sm text-gray-500">Somente Authorization Code com PKCE.</p>
+            </div>
+            @if (editingClientId) {
+              <button type="button" (click)="resetForm()" class="text-sm font-medium text-brand-600 hover:text-brand-700">Cancelar</button>
+            }
+          </div>
+
+          @if (!canManage) {
+            <div class="mt-5 rounded-lg bg-gray-50 p-4 text-sm text-gray-600 dark:bg-gray-900 dark:text-gray-400">
+              Modo somente leitura: falta a permissão <code>oauth.clients.manage</code>.
+            </div>
+          } @else {
+            <form class="mt-6 space-y-5" (ngSubmit)="save()">
+              <div>
+                <label for="clientId" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Client ID</label>
+                <input id="clientId" name="clientId" [(ngModel)]="form.clientId" [disabled]="!!editingClientId" required maxlength="100"
+                  class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-hidden focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 disabled:bg-gray-100 dark:border-gray-700 dark:text-white dark:disabled:bg-gray-800" placeholder="portal-interno" />
+              </div>
+              <div>
+                <label for="clientName" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Nome</label>
+                <input id="clientName" name="clientName" [(ngModel)]="form.clientName" required maxlength="200"
+                  class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-hidden focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:text-white" placeholder="Portal interno" />
+              </div>
+              <div>
+                <label for="redirectUris" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Redirect URIs <span class="text-gray-400">(uma por linha)</span></label>
+                <textarea id="redirectUris" name="redirectUris" [(ngModel)]="form.redirectUris" required rows="3"
+                  class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-800 outline-hidden focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:text-white" placeholder="https://portal.example.com/callback"></textarea>
+              </div>
+              <div>
+                <label for="postLogoutRedirectUris" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Retornos pós-logout <span class="text-gray-400">(opcional)</span></label>
+                <textarea id="postLogoutRedirectUris" name="postLogoutRedirectUris" [(ngModel)]="form.postLogoutRedirectUris" rows="2"
+                  class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-800 outline-hidden focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:text-white" placeholder="https://portal.example.com/logout"></textarea>
+              </div>
+              <fieldset>
+                <legend class="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Escopos permitidos</legend>
+                <div class="grid grid-cols-2 gap-3">
+                  @for (scope of supportedScopes; track scope) {
+                    <label class="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 dark:border-gray-800 dark:text-gray-300">
+                      <input type="checkbox" [checked]="selectedScopes.has(scope)" (change)="toggleScope(scope, $event)" class="size-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500" />
+                      {{ scope }}
+                    </label>
+                  }
+                </div>
+              </fieldset>
+              <button type="submit" [disabled]="saving"
+                class="inline-flex h-11 w-full items-center justify-center rounded-lg bg-brand-500 px-4 text-sm font-medium text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60">
+                {{ saving ? 'Salvando...' : (editingClientId ? 'Salvar alterações' : 'Criar cliente') }}
+              </button>
+            </form>
+          }
+        </section>
+      </div>
+    }
+  }
+</div>

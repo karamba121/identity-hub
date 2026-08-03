@@ -18,7 +18,7 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** doze fatias verticais executáveis. O repositório contém
+> **Estado atual:** treze fatias verticais executáveis. O repositório contém
 > Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
 > persistência PostgreSQL, tokens OIDC, um cliente público demonstrativo e uma
 > API protegida por issuer, audience e escopo. A terceira fatia acrescenta
@@ -41,7 +41,9 @@ context em um microsserviço artificial.
 > rejeitando acesso horizontal entre organizações. A décima segunda fatia
 > acrescenta CRUD administrativo de clientes OAuth públicos por tenant, com
 > PKCE obrigatório, redirect URIs e escopos validados e autorização distinta
-> para consulta e mutação. O
+> para consulta e mutação. A décima terceira fatia entrega a primeira área
+> administrativa no Angular/TailAdmin, com autenticação PKCE, seleção de tenant
+> pelas permissões efetivas e manutenção visual desses clientes. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 
@@ -285,6 +287,8 @@ e a autorização das primeiras operações administrativas em
 [`docs/vertical-slices/011-tenant-administration-authorization.md`](docs/vertical-slices/011-tenant-administration-authorization.md).
 O CRUD de clientes OAuth públicos por tenant está registrado em
 [`docs/vertical-slices/012-tenant-oauth-client-crud.md`](docs/vertical-slices/012-tenant-oauth-client-crud.md).
+A primeira superfície administrativa Angular está documentada em
+[`docs/vertical-slices/013-oauth-client-administration-ui.md`](docs/vertical-slices/013-oauth-client-administration-ui.md).
 
 CQRS será usado apenas onde modelos de leitura e escrita tiverem necessidades
 materialmente diferentes. Eventos de domínio não serão usados como sinônimo de

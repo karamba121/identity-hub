@@ -10,6 +10,7 @@ import { SignUpComponent } from './pages/auth-pages/sign-up/sign-up.component';
 import { TwoStepVerificationComponent } from './pages/auth-pages/two-step-verification/two-step-verification.component';
 import { ConsentComponent } from './pages/auth-pages/consent/consent.component';
 import { OauthDemoComponent } from './pages/oauth-demo/oauth-demo.component';
+import { OAuthClientsAdminComponent } from './pages/admin/oauth-clients/oauth-clients-admin.component';
 import { BlankComponent } from './pages/blank/blank.component';
 import { CalenderComponent } from './pages/calender/calender.component';
 import { BarChartComponent } from './pages/charts/bar-chart/bar-chart.component';
@@ -118,6 +119,16 @@ export const routes: Routes = [
     path:'',
     component:AppLayoutComponent,
     children:[
+      {
+        path:'admin/oauth-clients/callback',
+        component:OAuthClientsAdminComponent,
+        title:'Clientes OAuth | Identity Hub'
+      },
+      {
+        path:'admin/oauth-clients',
+        component:OAuthClientsAdminComponent,
+        title:'Clientes OAuth | Identity Hub'
+      },
       // dasshboard pages
       {
         path: '',

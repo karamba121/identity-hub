@@ -8,7 +8,7 @@ mantém relações de acesso por tenant e emite credenciais verificáveis para
 resource servers.
 
 O repositório contém um backend Spring Boot 4.0.7/Java 17 e um frontend Angular
-21 baseado no TailAdmin. As doze primeiras fatias verticais implementam
+21 baseado no TailAdmin. As treze primeiras fatias verticais implementam
 Authorization Code com PKCE, login e consentimento por interação opaca,
 persistência PostgreSQL, metadata, JWK Set, ID token, access token, UserInfo e
 uma API protegida por issuer, audience e escopo. Refresh tokens opacos são
@@ -24,9 +24,12 @@ e também a permissão efetiva `tenant.access.manage` em uma membership ativa do
 ator no tenant da rota. Clientes OAuth públicos agora pertencem explicitamente
 a um tenant e podem ser criados, consultados, atualizados e removidos por API,
 com PKCE e consentimento obrigatórios, redirect URIs exatas e escopos
-permitidos. Interface administrativa, clientes confidenciais, seleção de
-tenant ativo, logout global entre clientes, MFA, rotação durável de chaves e
-operação de produção continuam planejados.
+permitidos. A primeira superfície administrativa Angular autentica pelo mesmo
+cliente público usando um callback dedicado, mantém o access token apenas em
+memória, recupera a sessão por refresh token rotativo e habilita leitura ou
+gestão conforme as permissões do tenant selecionado. Administração de
+memberships e papéis, clientes confidenciais, logout global entre clientes,
+MFA, rotação durável de chaves e operação de produção continuam planejados.
 
 As evidências e limitações dos incrementos executáveis estão nas fatias
 [001](../vertical-slices/001-authorization-code-pkce.md),
@@ -39,8 +42,9 @@ As evidências e limitações dos incrementos executáveis estão nas fatias
 [008](../vertical-slices/008-tenant-administrative-roles.md),
 [009](../vertical-slices/009-first-administrator-bootstrap.md),
 [010](../vertical-slices/010-last-tenant-administrator.md),
-[011](../vertical-slices/011-tenant-administration-authorization.md) e
-[012](../vertical-slices/012-tenant-oauth-client-crud.md).
+[011](../vertical-slices/011-tenant-administration-authorization.md),
+[012](../vertical-slices/012-tenant-oauth-client-crud.md) e
+[013](../vertical-slices/013-oauth-client-administration-ui.md).
 
 ## Objetivos arquiteturais
 

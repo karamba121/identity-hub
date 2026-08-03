@@ -174,6 +174,27 @@ class OAuthClientAdministrationEndpointTests {
     }
 
     @Test
+    void exposesOnlyTheAuthenticatedActorsAdministrativeTenantContext() throws Exception {
+        Tenant visibleTenant = tenant("oauth-context-visible");
+        Tenant hiddenTenant = tenant("oauth-context-hidden");
+        TenantMembership actor = actor(
+                visibleTenant,
+                "oauth-context-admin",
+                PermissionCode.OAUTH_CLIENTS_READ,
+                PermissionCode.OAUTH_CLIENTS_MANAGE);
+        actor(hiddenTenant, "another-context-admin", PermissionCode.OAUTH_CLIENTS_READ);
+
+        mockMvc.perform(get("/api/v1/admin/context")
+                        .header("Authorization", bearer(actor)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].tenantId").value(visibleTenant.getId()))
+                .andExpect(jsonPath("$[0].permissions", org.hamcrest.Matchers.hasItems(
+                        PermissionCode.OAUTH_CLIENTS_READ.value(),
+                        PermissionCode.OAUTH_CLIENTS_MANAGE.value())));
+    }
+
+    @Test
     void rejectsHorizontalAccessToAnotherTenantClients() throws Exception {
         Tenant actorTenant = tenant("oauth-actor");
         Tenant targetTenant = tenant("oauth-target");
