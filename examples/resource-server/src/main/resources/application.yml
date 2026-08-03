@@ -1,0 +1,15 @@
+server:
+  port: ${RESOURCE_SERVER_PORT:8081}
+
+identity-hub:
+  resource-server:
+    issuer: ${IDENTITY_HUB_ISSUER:http://localhost:4200}
+    jwk-set-uri: ${IDENTITY_HUB_JWK_SET_URI:http://localhost:8080/oauth2/jwks}
+    audience: ${IDENTITY_HUB_RESOURCE_AUDIENCE:identity-hub-api}
+    required-scope: ${IDENTITY_HUB_RESOURCE_SCOPE:demo.read}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

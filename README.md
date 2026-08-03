@@ -18,7 +18,7 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** vinte e cinco fatias verticais executáveis. O repositório contém
+> **Estado atual:** vinte e seis fatias verticais executáveis. O repositório contém
 > Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
 > persistência PostgreSQL, tokens OIDC, um cliente público demonstrativo e uma
 > API protegida por issuer, audience e escopo. A terceira fatia acrescenta
@@ -71,7 +71,9 @@ context em um microsserviço artificial.
 > que duas recuperações concorrentes produzem um único vencedor. O vigésimo
 > quinto entrega clientes confidenciais por tenant, segredo revelado somente na
 > criação e persistido como Argon2id, além do grant Client Credentials com
-> sujeito de máquina, audience e escopo mínimo. O
+> sujeito de máquina, audience e escopo mínimo. O vigésimo sexto publica um
+> resource server Spring Boot independente que valida assinatura pelo JWK Set,
+> issuer, audience e escopo e pode ser executado no Compose. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 
@@ -390,6 +392,10 @@ O [roadmap](docs/roadmap.md) contém as fatias planejadas, critérios de aceite 
 evidências esperadas. ADRs registram decisões duradouras; o roadmap registra
 sequência e progresso. Mudanças arquiteturais relevantes devem atualizar ambos,
 sem reescrever silenciosamente o histórico de uma decisão aceita.
+
+O [resource server independente](examples/resource-server/README.md) demonstra
+como uma API separada valida os tokens emitidos pelo Identity Hub e inclui um
+fluxo completo de Client Credentials.
 
 ## Licença
 
