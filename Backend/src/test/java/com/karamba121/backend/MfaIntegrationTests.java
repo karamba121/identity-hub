@@ -29,6 +29,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityManager;
@@ -128,6 +129,31 @@ class MfaIntegrationTests {
         assertThat(jdbc.queryForObject(
                 "select credential_version from identity_user where email = ?", Long.class, email))
                 .isEqualTo(2L);
+
+        String auditResponse = mockMvc.perform(get("/api/v1/mfa/audit-events")
+                        .with(user(email)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(6))
+                .andExpect(jsonPath("$.items[*].eventType", org.hamcrest.Matchers.hasItems(
+                        "MFA_ENROLLMENT_STARTED",
+                        "MFA_ENABLED",
+                        "MFA_RECOVERY_CODES_REGENERATED",
+                        "MFA_DISABLED")))
+                .andExpect(jsonPath("$.items[?(@.eventType == 'MFA_RECOVERY_CODES_REGENERATED' && @.result == 'FAILED')].reasonCode")
+                        .value(org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is("INVALID_FACTOR"))))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(auditResponse)
+                .doesNotContain(email, secret, totp)
+                .doesNotContain(firstCodes.get(0), replacementCodes.get(0));
+
+        String otherEmail = "mfa-other-" + UUID.randomUUID() + "@example.test";
+        users.save(new IdentityUser(
+                otherEmail,
+                "Outra Identidade",
+                passwordEncoder.encode("Another secure identity phrase 2026")));
+        mockMvc.perform(get("/api/v1/mfa/audit-events").with(user(otherEmail)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(0));
     }
 
     @Test
@@ -188,6 +214,39 @@ class MfaIntegrationTests {
                 .andExpect(jsonPath("$.mfaRequired").value(false))
                 .andExpect(jsonPath("$.continueUrl").isNotEmpty());
         assertThat(session.getAttribute("SPRING_SECURITY_CONTEXT")).isNotNull();
+
+        mockMvc.perform(get("/api/v1/mfa/audit-events").with(user(email)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[*].eventType", org.hamcrest.Matchers.hasItems(
+                        "MFA_CHALLENGE_FAILED", "MFA_CHALLENGE_SUCCEEDED")))
+                .andExpect(jsonPath("$.items[?(@.eventType == 'MFA_CHALLENGE_FAILED')].reasonCode")
+                        .value(org.hamcrest.Matchers.hasItem("INVALID_FACTOR")));
+    }
+
+    @Test
+    void rateLimitsMfaManagementAndAuditsTheRejection() throws Exception {
+        String email = "mfa-rate-" + UUID.randomUUID() + "@example.test";
+        users.save(new IdentityUser(
+                email,
+                "Rate Limited MFA",
+                passwordEncoder.encode("A secure rate limited phrase 2026")));
+
+        for (int attempt = 0; attempt < 8; attempt++) {
+            mockMvc.perform(post("/api/v1/mfa/enrollment")
+                            .with(user(email)).with(csrf()).with(remoteAddress("192.0.2.55")))
+                    .andExpect(status().isOk());
+        }
+        mockMvc.perform(post("/api/v1/mfa/enrollment")
+                        .with(user(email)).with(csrf()).with(remoteAddress("192.0.2.55")))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.detail").value("Muitas tentativas. Aguarde antes de tentar novamente."));
+
+        mockMvc.perform(get("/api/v1/mfa/audit-events").with(user(email)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(9))
+                .andExpect(jsonPath("$.items[0].eventType").value("MFA_ENROLLMENT_STARTED"))
+                .andExpect(jsonPath("$.items[0].result").value("FAILED"))
+                .andExpect(jsonPath("$.items[0].reasonCode").value("RATE_LIMITED"));
     }
 
     private static String queryParameter(String uri, String name) {
@@ -199,5 +258,12 @@ class MfaIntegrationTests {
             }
         }
         throw new IllegalArgumentException("Parâmetro ausente: " + name);
+    }
+
+    private static RequestPostProcessor remoteAddress(String value) {
+        return request -> {
+            request.setRemoteAddr(value);
+            return request;
+        };
     }
 }

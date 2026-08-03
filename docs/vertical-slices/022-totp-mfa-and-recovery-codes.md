@@ -40,6 +40,6 @@ recuperação.
 
 - a chave de cifra ainda não possui rotação com múltiplas versões;
 - desafio e registro de sessão atendem à implantação única;
-- auditoria específica do ciclo de vida do MFA permanece planejada;
+- auditoria específica do ciclo de vida do MFA foi entregue pela fatia 023;
 - PostgreSQL real, navegador real e concorrência em múltiplas instâncias não
   foram exercitados nesta entrega.

@@ -429,6 +429,11 @@ senhas, secrets, cookies, códigos, verifiers, OTPs e chaves privadas não podem
 As métricas de refresh token usam apenas conjuntos fechados de eventos e
 resultados; identificadores de usuário, cliente, família, token, IP ou exceção
 não são dimensões permitidas.
+Eventos administrativos permanecem vinculados ao tenant. Eventos do ciclo MFA
+usam apenas o identificador interno da identidade como ator e alvo, permitem
+`tenant_id` ausente e são consultáveis somente pela sessão da própria pessoa.
+Segredo TOTP, OTP, códigos de recuperação, e-mail e payload não entram nessa
+trilha.
 
 ## Estratégia de testes
 

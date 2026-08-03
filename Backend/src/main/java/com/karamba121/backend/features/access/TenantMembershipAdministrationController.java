@@ -38,7 +38,7 @@ public class TenantMembershipAdministrationController {
                 jwt.getSubject(),
                 tenantId,
                 PermissionCode.TENANT_ACCESS_MANAGE,
-                AdministrativeAuditEventType.TENANT_MEMBERSHIP_ROLE_ASSIGNED,
+                SecurityAuditEventType.TENANT_MEMBERSHIP_ROLE_ASSIGNED,
                 "TENANT_MEMBERSHIP",
                 membershipId,
                 () -> {
@@ -56,7 +56,7 @@ public class TenantMembershipAdministrationController {
                 jwt.getSubject(),
                 tenantId,
                 PermissionCode.TENANT_ACCESS_MANAGE,
-                AdministrativeAuditEventType.TENANT_MEMBERSHIP_SUSPENDED,
+                SecurityAuditEventType.TENANT_MEMBERSHIP_SUSPENDED,
                 "TENANT_MEMBERSHIP",
                 membershipId,
                 () -> {
@@ -74,7 +74,7 @@ public class TenantMembershipAdministrationController {
                 jwt.getSubject(),
                 tenantId,
                 PermissionCode.TENANT_ACCESS_MANAGE,
-                AdministrativeAuditEventType.TENANT_MEMBERSHIP_REMOVED,
+                SecurityAuditEventType.TENANT_MEMBERSHIP_REMOVED,
                 "TENANT_MEMBERSHIP",
                 membershipId,
                 () -> {

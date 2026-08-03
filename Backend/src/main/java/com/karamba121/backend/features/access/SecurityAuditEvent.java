@@ -26,7 +26,7 @@ public class SecurityAuditEvent {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "event_type", length = 80, nullable = false, updatable = false)
-    private AdministrativeAuditEventType eventType;
+    private SecurityAuditEventType eventType;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20, nullable = false, updatable = false)
@@ -38,7 +38,7 @@ public class SecurityAuditEvent {
     @Column(name = "actor_id", length = 100, nullable = false, updatable = false)
     private String actorId;
 
-    @Column(name = "tenant_id", length = 100, nullable = false, updatable = false)
+    @Column(name = "tenant_id", length = 100, updatable = false)
     private String tenantId;
 
     @Column(name = "target_type", length = 50, nullable = false, updatable = false)
@@ -54,7 +54,7 @@ public class SecurityAuditEvent {
     }
 
     private SecurityAuditEvent(
-            AdministrativeAuditEventType eventType,
+            SecurityAuditEventType eventType,
             SecurityAuditResult result,
             String reasonCode,
             String actorId,
@@ -68,14 +68,14 @@ public class SecurityAuditEvent {
         this.result = result;
         this.reasonCode = reasonCode;
         this.actorId = required(actorId, "<unknown-actor>");
-        this.tenantId = required(tenantId, "<unknown-tenant>");
+        this.tenantId = optional(tenantId);
         this.targetType = required(targetType, "UNKNOWN");
         this.targetId = required(targetId, "<unknown-target>");
         this.correlationId = correlationId;
     }
 
     public static SecurityAuditEvent succeeded(
-            AdministrativeAuditEventType eventType,
+            SecurityAuditEventType eventType,
             String actorId,
             String tenantId,
             String targetType,
@@ -87,7 +87,7 @@ public class SecurityAuditEvent {
     }
 
     public static SecurityAuditEvent failed(
-            AdministrativeAuditEventType eventType,
+            SecurityAuditEventType eventType,
             SecurityAuditResult result,
             String reasonCode,
             String actorId,
@@ -104,6 +104,10 @@ public class SecurityAuditEvent {
         return value == null || value.isBlank() ? fallback : value.trim();
     }
 
+    private static String optional(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
     public String getId() {
         return id;
     }
@@ -112,7 +116,7 @@ public class SecurityAuditEvent {
         return occurredAt;
     }
 
-    public AdministrativeAuditEventType getEventType() {
+    public SecurityAuditEventType getEventType() {
         return eventType;
     }
 

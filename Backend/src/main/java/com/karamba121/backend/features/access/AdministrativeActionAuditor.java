@@ -29,7 +29,7 @@ public class AdministrativeActionAuditor {
             String actorId,
             String tenantId,
             PermissionCode permission,
-            AdministrativeAuditEventType eventType,
+            SecurityAuditEventType eventType,
             String targetType,
             String targetId,
             Supplier<T> operation) {

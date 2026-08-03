@@ -69,3 +69,35 @@
     </div>
   }
 </div>
+
+<div class="mt-6 rounded-2xl border border-gray-200 bg-white p-5 lg:p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+  <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Atividade recente do MFA</h3>
+  <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+    Eventos de segurança desta identidade. Códigos, segredo e dados de autenticação não são registrados.
+  </p>
+
+  @if (auditEvents.length) {
+    <div class="mt-5 overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="border-b border-gray-200 text-xs uppercase text-gray-500 dark:border-gray-800 dark:text-gray-400">
+          <tr><th class="px-3 py-3">Evento</th><th class="px-3 py-3">Resultado</th><th class="px-3 py-3">Quando</th></tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+          @for (event of auditEvents; track event.id) {
+            <tr>
+              <td class="px-3 py-3 font-medium text-gray-800 dark:text-white/90">{{ eventLabel(event.eventType) }}</td>
+              <td class="px-3 py-3">
+                <span [class]="event.result === 'SUCCEEDED' ? 'text-success-600' : 'text-error-600'">
+                  {{ event.result === 'SUCCEEDED' ? 'Concluído' : 'Recusado' }}
+                </span>
+              </td>
+              <td class="px-3 py-3 text-gray-500 dark:text-gray-400">{{ event.occurredAt | date:'short' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <p class="mt-5 text-sm text-gray-500 dark:text-gray-400">Nenhum evento MFA registrado.</p>
+  }
+</div>

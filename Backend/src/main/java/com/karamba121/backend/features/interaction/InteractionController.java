@@ -36,6 +36,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.karamba121.backend.features.abuse.RateLimitService;
 import com.karamba121.backend.features.abuse.RateLimitedOperation;
 import com.karamba121.backend.features.identity.MfaService;
+import com.karamba121.backend.features.identity.IdentitySecurityAuditor;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -56,6 +57,7 @@ public class InteractionController {
     private final RateLimitService rateLimits;
     private final SessionAuthenticationStrategy sessionStrategy;
     private final MfaService mfa;
+    private final IdentitySecurityAuditor identityAuditor;
 
     public InteractionController(
             AuthorizationInteractionService interactions,
@@ -63,13 +65,15 @@ public class InteractionController {
             SecurityContextRepository securityContextRepository,
             RateLimitService rateLimits,
             SessionAuthenticationStrategy sessionStrategy,
-            MfaService mfa) {
+            MfaService mfa,
+            IdentitySecurityAuditor identityAuditor) {
         this.interactions = interactions;
         this.authenticationManager = authenticationManager;
         this.securityContextRepository = securityContextRepository;
         this.rateLimits = rateLimits;
         this.sessionStrategy = sessionStrategy;
         this.mfa = mfa;
+        this.identityAuditor = identityAuditor;
     }
 
     @GetMapping("/{interactionId}")
@@ -147,11 +151,21 @@ public class InteractionController {
                 || !interactionId.equals(pendingInteraction)
                 || !(createdAt instanceof Instant startedAt)
                 || startedAt.plus(Duration.ofMinutes(5)).isBefore(Instant.now())) {
+            if (pending instanceof Authentication authentication) {
+                identityAuditor.recordChallengeFailure(authentication.getName(), "CHALLENGE_EXPIRED_OR_INVALID");
+            }
             clearPendingMfa(request);
             throw new InteractionException(HttpStatus.UNAUTHORIZED, "Desafio MFA inválido ou expirado");
         }
-        rateLimits.check(RateLimitedOperation.LOGIN, request, authentication.getName());
-        if (body == null || !mfa.verifyChallenge(authentication.getName(), body.code())) {
+        try {
+            rateLimits.check(RateLimitedOperation.LOGIN, request, authentication.getName());
+        } catch (com.karamba121.backend.features.abuse.RateLimitExceededException exception) {
+            identityAuditor.recordChallengeFailure(authentication.getName(), "RATE_LIMITED");
+            throw exception;
+        }
+        if (body == null || !identityAuditor.verifyChallenge(
+                authentication.getName(),
+                () -> mfa.verifyChallenge(authentication.getName(), body.code()))) {
             throw new InteractionException(HttpStatus.UNAUTHORIZED, "Código MFA inválido");
         }
         clearPendingMfa(request);

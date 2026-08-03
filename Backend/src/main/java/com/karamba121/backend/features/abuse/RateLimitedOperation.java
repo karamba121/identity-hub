@@ -5,7 +5,8 @@ public enum RateLimitedOperation {
     REGISTRATION("registration"),
     EMAIL_VERIFICATION("email_verification"),
     PASSWORD_RECOVERY_REQUEST("password_recovery_request"),
-    PASSWORD_RECOVERY_COMPLETE("password_recovery_complete");
+    PASSWORD_RECOVERY_COMPLETE("password_recovery_complete"),
+    MFA_MANAGEMENT("mfa_management");
 
     private final String metricTag;
 

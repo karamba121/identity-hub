@@ -146,7 +146,7 @@ cliente de um tenant não observam nem alteram recursos de outro.
 - [x] rate limiting por sinais combinados, sem depender só de IP;
 - [x] invalidação de sessões após eventos críticos;
 - [x] MFA TOTP opcional com códigos de recuperação;
-- [ ] proteção e auditoria do ciclo de vida do MFA;
+- [x] proteção e auditoria do ciclo de vida do MFA;
 - [ ] testes de enumeração, brute force, replay e recuperação concorrente.
 
 **Critério de aceite:** respostas públicas não permitem enumerar contas e os

@@ -62,7 +62,7 @@ public class SecurityAuditController {
     record AuditEventView(
             String id,
             Instant occurredAt,
-            AdministrativeAuditEventType eventType,
+            SecurityAuditEventType eventType,
             SecurityAuditResult result,
             String reasonCode,
             String actorId,

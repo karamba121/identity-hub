@@ -3,7 +3,7 @@ import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { switchMap } from 'rxjs';
-import { MfaApiService, MfaEnrollment, MfaStatus } from '../../core/services/mfa-api.service';
+import { MfaApiService, MfaAuditEvent, MfaEnrollment, MfaStatus } from '../../core/services/mfa-api.service';
 import { PageBreadcrumbComponent } from '../../shared/components/common/page-breadcrumb/page-breadcrumb.component';
 
 @Component({
@@ -24,9 +24,17 @@ export class ProfileComponent {
   loading = false;
   errorMessage = '';
   successMessage = '';
+  auditEvents: MfaAuditEvent[] = [];
 
   constructor(private readonly mfa: MfaApiService) {
     this.load();
+    this.loadAudit();
+  }
+
+  loadAudit() {
+    this.mfa.auditEvents().subscribe({
+      next: page => this.auditEvents = page.items,
+    });
   }
 
   load() {
@@ -41,6 +49,7 @@ export class ProfileComponent {
       this.enrollment = enrollment;
       this.recoveryCodes = [];
       this.successMessage = 'Adicione a chave ao autenticador e confirme o código atual.';
+      this.loadAudit();
     });
   }
 
@@ -51,6 +60,7 @@ export class ProfileComponent {
       this.code = '';
       this.successMessage = 'MFA habilitado. Guarde os códigos de recuperação em local seguro.';
       this.status = { enabled: true, recoveryCodesRemaining: result.recoveryCodes.length };
+      this.loadAudit();
     });
   }
 
@@ -60,6 +70,7 @@ export class ProfileComponent {
       this.code = '';
       this.successMessage = 'Novos códigos gerados; os anteriores foram invalidados.';
       this.load();
+      this.loadAudit();
     });
   }
 
@@ -69,6 +80,7 @@ export class ProfileComponent {
       this.code = '';
       this.recoveryCodes = [];
       this.successMessage = 'MFA desabilitado. As sessões anteriores foram encerradas.';
+      this.loadAudit();
     });
   }
 
@@ -87,5 +99,17 @@ export class ProfileComponent {
         this.errorMessage = error.error?.detail ?? 'Não foi possível concluir a operação de MFA.';
       },
     });
+  }
+
+  eventLabel(eventType: string): string {
+    const labels: Record<string, string> = {
+      MFA_ENROLLMENT_STARTED: 'Configuração iniciada',
+      MFA_ENABLED: 'MFA habilitado',
+      MFA_RECOVERY_CODES_REGENERATED: 'Códigos regenerados',
+      MFA_DISABLED: 'MFA desabilitado',
+      MFA_CHALLENGE_SUCCEEDED: 'Desafio aceito',
+      MFA_CHALLENGE_FAILED: 'Desafio recusado',
+    };
+    return labels[eventType] ?? eventType;
   }
 }

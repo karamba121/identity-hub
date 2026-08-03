@@ -66,7 +66,7 @@ public class OAuthClientAdministrationController {
                 jwt.getSubject(),
                 tenantId,
                 PermissionCode.OAUTH_CLIENTS_MANAGE,
-                AdministrativeAuditEventType.OAUTH_CLIENT_CREATED,
+                SecurityAuditEventType.OAUTH_CLIENT_CREATED,
                 "OAUTH_CLIENT",
                 request.clientId(),
                 () -> {
@@ -89,7 +89,7 @@ public class OAuthClientAdministrationController {
                 jwt.getSubject(),
                 tenantId,
                 PermissionCode.OAUTH_CLIENTS_MANAGE,
-                AdministrativeAuditEventType.OAUTH_CLIENT_UPDATED,
+                SecurityAuditEventType.OAUTH_CLIENT_UPDATED,
                 "OAUTH_CLIENT",
                 clientId,
                 () -> administration.update(tenantId, clientId, request.command()));
@@ -104,7 +104,7 @@ public class OAuthClientAdministrationController {
                 jwt.getSubject(),
                 tenantId,
                 PermissionCode.OAUTH_CLIENTS_MANAGE,
-                AdministrativeAuditEventType.OAUTH_CLIENT_DELETED,
+                SecurityAuditEventType.OAUTH_CLIENT_DELETED,
                 "OAUTH_CLIENT",
                 clientId,
                 () -> {

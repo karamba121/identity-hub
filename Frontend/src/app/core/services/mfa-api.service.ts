@@ -12,6 +12,23 @@ export interface MfaEnrollment {
   otpauthUri: string;
 }
 
+export interface MfaAuditEvent {
+  id: string;
+  occurredAt: string;
+  eventType: string;
+  result: 'SUCCEEDED' | 'FAILED' | 'DENIED';
+  reasonCode: string | null;
+  correlationId: string;
+}
+
+export interface MfaAuditPage {
+  items: MfaAuditEvent[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class MfaApiService {
   constructor(private readonly http: HttpClient) {}
@@ -22,6 +39,10 @@ export class MfaApiService {
 
   status(): Observable<MfaStatus> {
     return this.http.get<MfaStatus>('/api/v1/mfa');
+  }
+
+  auditEvents(): Observable<MfaAuditPage> {
+    return this.http.get<MfaAuditPage>('/api/v1/mfa/audit-events', { params: { size: 10 } });
   }
 
   enroll(): Observable<MfaEnrollment> {
