@@ -68,12 +68,16 @@ class PasswordRecoveryIntegrationTests {
     void returnsTheSameResponseForKnownAndUnknownAccounts() throws Exception {
         IdentityUser user = verifiedUser();
 
-        requestRecovery(user.getEmail())
+        String knownResponse = requestRecovery(user.getEmail())
                 .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.message").value(ACCEPTED_MESSAGE));
-        requestRecovery("missing-" + UUID.randomUUID() + "@example.test")
+                .andExpect(jsonPath("$.message").value(ACCEPTED_MESSAGE))
+                .andReturn().getResponse().getContentAsString();
+        String unknownResponse = requestRecovery("missing-" + UUID.randomUUID() + "@example.test")
                 .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.message").value(ACCEPTED_MESSAGE));
+                .andExpect(jsonPath("$.message").value(ACCEPTED_MESSAGE))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(knownResponse).isEqualTo(unknownResponse);
 
         verify(sender, times(1)).send(eq(user.getEmail()), eq(user.getDisplayName()), anyString());
     }

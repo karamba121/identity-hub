@@ -44,6 +44,18 @@ class RateLimitHttpIntegrationTests {
                 .andExpect(status().isAccepted());
     }
 
+    @Test
+    void changingTheOriginDoesNotBypassTheSubjectLimit() throws Exception {
+        String email = "distributed-" + UUID.randomUUID() + "@example.test";
+        requestRecovery(email, "192.0.2.61").andExpect(status().isAccepted());
+        requestRecovery(email, "192.0.2.62").andExpect(status().isAccepted());
+        requestRecovery(email, "192.0.2.63").andExpect(status().isAccepted());
+
+        requestRecovery(email, "192.0.2.64")
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().exists(HttpHeaders.RETRY_AFTER));
+    }
+
     private org.springframework.test.web.servlet.ResultActions requestRecovery(String email, String origin)
             throws Exception {
         return mockMvc.perform(post("/api/v1/password-recovery")

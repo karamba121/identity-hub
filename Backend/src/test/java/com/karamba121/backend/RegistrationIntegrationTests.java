@@ -118,18 +118,22 @@ class RegistrationIntegrationTests {
         String email = "duplicate-" + UUID.randomUUID() + "@example.test";
         String payload = registrationPayload(email);
 
-        mockMvc.perform(post("/api/v1/registrations")
+        String createdResponse = mockMvc.perform(post("/api/v1/registrations")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
-                .andExpect(status().isAccepted());
-        mockMvc.perform(post("/api/v1/registrations")
+                .andExpect(status().isAccepted())
+                .andReturn().getResponse().getContentAsString();
+        String existingResponse = mockMvc.perform(post("/api/v1/registrations")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.message").value(
-                        "Se o cadastro puder ser criado, enviaremos um link de verificação para o e-mail informado."));
+                        "Se o cadastro puder ser criado, enviaremos um link de verificação para o e-mail informado."))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(existingResponse).isEqualTo(createdResponse);
 
         assertThat(users.findAll().stream().filter(user -> email.equals(user.getEmail()))).hasSize(1);
         verify(sender, times(1)).send(

@@ -147,7 +147,7 @@ cliente de um tenant não observam nem alteram recursos de outro.
 - [x] invalidação de sessões após eventos críticos;
 - [x] MFA TOTP opcional com códigos de recuperação;
 - [x] proteção e auditoria do ciclo de vida do MFA;
-- [ ] testes de enumeração, brute force, replay e recuperação concorrente.
+- [x] testes de enumeração, brute force, replay e recuperação concorrente.
 
 **Critério de aceite:** respostas públicas não permitem enumerar contas e os
 testes demonstram expiração, uso único e revogação das credenciais temporárias.

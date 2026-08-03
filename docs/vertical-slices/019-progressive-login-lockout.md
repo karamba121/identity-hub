@@ -52,5 +52,5 @@ proteção.
 
 - a migração não foi executada em PostgreSQL real;
 - o fluxo não foi exercitado em navegador;
-- rate limiting por sinais combinados e testes concorrentes específicos seguem
-  como itens distintos do roadmap.
+- rate limiting por sinais combinados e a matriz ampliada de abuso foram
+  exercitados pelas fatias 020 e 024.

@@ -445,6 +445,8 @@ Cada fatia vertical deverá combinar:
 - testes de concorrência para códigos, refresh tokens e bloqueios;
 - testes de autorização por tenant e permissão;
 - testes negativos para redirect URI, audience, issuer, PKCE e replay;
+- matriz de abuso de credenciais cobrindo não enumeração, limites combinados,
+  bloqueio progressivo e consumo concorrente de credenciais temporárias;
 - análise de dependências e configuração;
 - testes de componentes e contratos das telas TailAdmin de login e
   consentimento;

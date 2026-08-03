@@ -52,5 +52,5 @@ enquanto a mutação é desfeita.
   decisões operacionais;
 - rate limiting e desafios continuam locais à instância;
 - PostgreSQL real, navegador real e múltiplas réplicas não foram exercitados;
-- a suíte ampliada de enumeração, brute force e concorrência permanece como o
-  próximo item do roadmap.
+- a suíte ampliada de enumeração, força bruta, replay e concorrência foi
+  consolidada pela fatia 024.

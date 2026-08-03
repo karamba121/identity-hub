@@ -18,7 +18,7 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** vinte e três fatias verticais executáveis. O repositório contém
+> **Estado atual:** vinte e quatro fatias verticais executáveis. O repositório contém
 > Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
 > persistência PostgreSQL, tokens OIDC, um cliente público demonstrativo e uma
 > API protegida por issuer, audience e escopo. A terceira fatia acrescenta
@@ -66,7 +66,9 @@ context em um microsserviço artificial.
 > proteção contra replay e códigos de recuperação de uso único. O vigésimo
 > terceiro protege as operações MFA com rate limiting e registra ativações,
 > desativações, regenerações e desafios em auditoria consultável pela própria
-> identidade, sem armazenar fatores ou dados pessoais. O
+> identidade, sem armazenar fatores ou dados pessoais. O vigésimo quarto
+> consolida a suíte negativa contra enumeração, força bruta e replay e comprova
+> que duas recuperações concorrentes produzem um único vencedor. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 

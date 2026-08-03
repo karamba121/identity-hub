@@ -48,5 +48,4 @@ e conexão reutilizam a configuração SMTP do cadastro.
 - SMTP real, PostgreSQL real e o fluxo em navegador não foram exercitados;
 - sessões existentes ainda não são invalidadas após a troca de senha, conforme
   item separado do roadmap;
-- o teste concorrente dedicado permanece no item posterior de enumeração,
-  brute force, replay e recuperação concorrente.
+- o consumo concorrente com vencedor único foi exercitado pela fatia 024.
