@@ -4,11 +4,13 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UserDetailsPasswordService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class IdentityUserDetailsService implements UserDetailsService {
+public class IdentityUserDetailsService implements UserDetailsService, UserDetailsPasswordService {
 
     private final IdentityUserRepository users;
 
@@ -26,5 +28,14 @@ public class IdentityUserDetailsService implements UserDetailsService {
                 .authorities(new SimpleGrantedAuthority("ROLE_USER"))
                 .disabled(!user.isEnabled() || !user.isEmailVerified())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public UserDetails updatePassword(UserDetails userDetails, String newPassword) {
+        IdentityUser user = users.findByEmailIgnoreCase(userDetails.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("Credenciais inválidas"));
+        user.updatePasswordHash(newPassword);
+        return loadUserByUsername(user.getEmail());
     }
 }

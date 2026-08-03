@@ -35,7 +35,7 @@ export class SignupFormComponent {
   }
 
   onSubmit() {
-    if (!this.displayName.trim() || !this.email.trim() || this.password.length < 8 || this.loading) {
+    if (!this.displayName.trim() || !this.email.trim() || this.password.length < 15 || this.loading) {
       return;
     }
     this.loading = true;

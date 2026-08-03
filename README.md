@@ -18,7 +18,7 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** dezesseis fatias verticais executáveis. O repositório contém
+> **Estado atual:** dezessete fatias verticais executáveis. O repositório contém
 > Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
 > persistência PostgreSQL, tokens OIDC, um cliente público demonstrativo e uma
 > API protegida por issuer, audience e escopo. A terceira fatia acrescenta
@@ -51,7 +51,9 @@ context em um microsserviço artificial.
 > auditoria, incluindo tentativas de aliasing por identificador estrangeiro. A
 > décima sexta fatia entrega cadastro público e confirmação de e-mail por link
 > de uso único, com token persistido somente como hash, envio SMTP configurável
-> e bloqueio de login enquanto a conta estiver pendente. O
+> e bloqueio de login enquanto a conta estiver pendente. A décima sétima fatia
+> centraliza a política de senha, adota Argon2id para novas credenciais e migra
+> hashes BCrypt legados depois de uma autenticação válida. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 
@@ -303,6 +305,8 @@ A matriz negativa de isolamento horizontal está documentada em
 [`docs/vertical-slices/015-tenant-horizontal-isolation.md`](docs/vertical-slices/015-tenant-horizontal-isolation.md).
 O cadastro e a confirmação de e-mail estão documentados em
 [`docs/vertical-slices/016-email-registration-and-verification.md`](docs/vertical-slices/016-email-registration-and-verification.md).
+A política de senha e a evolução de hashes estão documentadas em
+[`docs/vertical-slices/017-password-policy-and-hash-evolution.md`](docs/vertical-slices/017-password-policy-and-hash-evolution.md).
 
 CQRS será usado apenas onde modelos de leitura e escrita tiverem necessidades
 materialmente diferentes. Eventos de domínio não serão usados como sinônimo de

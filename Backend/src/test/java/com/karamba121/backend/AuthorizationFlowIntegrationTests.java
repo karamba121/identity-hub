@@ -95,7 +95,7 @@ class AuthorizationFlowIntegrationTests {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"admin@identityhub.local","password":"TestPassword123!"}
+                                {"email":"admin@identityhub.local","password":"TestSecureAccessPhrase123!"}
                                 """))
                 .andExpect(status().isOk())
                 .andReturn();

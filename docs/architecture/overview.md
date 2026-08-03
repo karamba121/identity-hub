@@ -8,7 +8,7 @@ mantém relações de acesso por tenant e emite credenciais verificáveis para
 resource servers.
 
 O repositório contém um backend Spring Boot 4.0.7/Java 17 e um frontend Angular
-21 baseado no TailAdmin. As dezesseis primeiras fatias verticais implementam
+21 baseado no TailAdmin. As dezessete primeiras fatias verticais implementam
 Authorization Code com PKCE, login e consentimento por interação opaca,
 persistência PostgreSQL, metadata, JWK Set, ID token, access token, UserInfo e
 uma API protegida por issuer, audience e escopo. Refresh tokens opacos são
@@ -35,7 +35,10 @@ exercita as fronteiras de usuário, administrador, cliente OAuth, membership e
 auditoria, incluindo tentativas de usar identificadores estrangeiros sob uma
 rota autorizada. O cadastro público cria uma identidade global pendente,
 entrega por SMTP um link de verificação com token de uso único armazenado
-somente como hash e impede autenticação antes da confirmação. Administração de memberships e
+somente como hash e impede autenticação antes da confirmação. Novas senhas
+seguem uma política central de frases longas e bloqueio contextual, usam
+Argon2id com custo de memória e migram hashes BCrypt legados após autenticação
+válida. Administração de memberships e
 papéis, clientes confidenciais, logout global entre clientes, MFA, rotação
 durável de chaves e operação de produção continuam planejados.
 
@@ -54,8 +57,9 @@ As evidências e limitações dos incrementos executáveis estão nas fatias
 [012](../vertical-slices/012-tenant-oauth-client-crud.md),
 [013](../vertical-slices/013-oauth-client-administration-ui.md),
 [014](../vertical-slices/014-administrative-security-audit.md),
-[015](../vertical-slices/015-tenant-horizontal-isolation.md) e
-[016](../vertical-slices/016-email-registration-and-verification.md).
+[015](../vertical-slices/015-tenant-horizontal-isolation.md),
+[016](../vertical-slices/016-email-registration-and-verification.md) e
+[017](../vertical-slices/017-password-policy-and-hash-evolution.md).
 
 ## Objetivos arquiteturais
 

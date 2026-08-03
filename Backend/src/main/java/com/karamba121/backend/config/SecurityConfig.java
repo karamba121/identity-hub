@@ -26,6 +26,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
 import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
+import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
@@ -63,6 +65,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import com.karamba121.backend.features.identity.IdentityUserDetailsService;
 import com.karamba121.backend.features.identity.IdentityUserRepository;
+import com.karamba121.backend.features.identity.NormalizingPasswordEncoder;
 import com.karamba121.backend.features.access.AdminResourceContract;
 import com.karamba121.backend.features.interaction.LoginInteractionEntryPoint;
 import com.karamba121.backend.features.resource.DemoResourceContract;
@@ -206,7 +209,13 @@ public class SecurityConfig {
 
     @Bean
     PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(12);
+        Argon2PasswordEncoder argon2 = new Argon2PasswordEncoder(16, 32, 1, 19_456, 2);
+        BCryptPasswordEncoder bcrypt = new BCryptPasswordEncoder(12);
+        DelegatingPasswordEncoder delegate = new DelegatingPasswordEncoder(
+                "argon2id",
+                java.util.Map.of("argon2id", argon2, "bcrypt", bcrypt));
+        delegate.setDefaultPasswordEncoderForMatches(bcrypt);
+        return new NormalizingPasswordEncoder(delegate);
     }
 
     @Bean
@@ -215,6 +224,7 @@ public class SecurityConfig {
             PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder);
+        provider.setUserDetailsPasswordService(userDetailsService);
         return new ProviderManager(List.of(provider));
     }
 

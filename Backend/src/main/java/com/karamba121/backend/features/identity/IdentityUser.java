@@ -84,6 +84,13 @@ public class IdentityUser {
         this.emailVerified = true;
     }
 
+    public void updatePasswordHash(String passwordHash) {
+        if (passwordHash == null || passwordHash.isBlank()) {
+            throw new IllegalArgumentException("Hash de senha é obrigatório");
+        }
+        this.passwordHash = passwordHash;
+    }
+
     private static String normalizeEmail(String email) {
         return email == null ? null : email.trim().toLowerCase();
     }

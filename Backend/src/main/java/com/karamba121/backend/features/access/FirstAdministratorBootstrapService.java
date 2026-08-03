@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.karamba121.backend.config.IdentityHubProperties;
 import com.karamba121.backend.features.identity.IdentityUser;
 import com.karamba121.backend.features.identity.IdentityUserRepository;
+import com.karamba121.backend.features.identity.PasswordPolicy;
 import com.karamba121.backend.features.tenancy.Tenant;
 import com.karamba121.backend.features.tenancy.TenantMembership;
 import com.karamba121.backend.features.tenancy.TenantMembershipRepository;
@@ -21,6 +22,7 @@ public class FirstAdministratorBootstrapService {
     private final AdministrativeBootstrapLockRepository bootstrapLocks;
     private final IdentityUserRepository users;
     private final PasswordEncoder passwordEncoder;
+    private final PasswordPolicy passwordPolicy;
     private final TenantRepository tenants;
     private final TenantMembershipRepository memberships;
     private final TenantRoleRepository roles;
@@ -30,6 +32,7 @@ public class FirstAdministratorBootstrapService {
             AdministrativeBootstrapLockRepository bootstrapLocks,
             IdentityUserRepository users,
             PasswordEncoder passwordEncoder,
+            PasswordPolicy passwordPolicy,
             TenantRepository tenants,
             TenantMembershipRepository memberships,
             TenantRoleRepository roles,
@@ -37,6 +40,7 @@ public class FirstAdministratorBootstrapService {
         this.bootstrapLocks = bootstrapLocks;
         this.users = users;
         this.passwordEncoder = passwordEncoder;
+        this.passwordPolicy = passwordPolicy;
         this.tenants = tenants;
         this.memberships = memberships;
         this.roles = roles;
@@ -60,7 +64,8 @@ public class FirstAdministratorBootstrapService {
                     new IdentityUser(
                             bootstrap.userEmail(),
                             bootstrap.userName(),
-                            passwordEncoder.encode(bootstrap.userPassword()))));
+                            passwordEncoder.encode(passwordPolicy.validate(
+                                    bootstrap.userPassword(), bootstrap.userEmail(), bootstrap.userName())))));
             tenant = tenants.findBySlugIgnoreCase(bootstrap.tenantSlug())
                     .orElseGet(() -> tenants.save(new Tenant(
                             bootstrap.tenantSlug(), bootstrap.tenantName())));

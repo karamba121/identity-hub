@@ -72,7 +72,9 @@ class RegistrationIntegrationTests {
         IdentityUser pending = users.findByEmailIgnoreCase(email).orElseThrow();
         assertThat(pending.isEnabled()).isTrue();
         assertThat(pending.isEmailVerified()).isFalse();
-        assertThat(pending.getPasswordHash()).startsWith("$2").doesNotContain("Registration123!");
+        assertThat(pending.getPasswordHash())
+                .startsWith("{argon2id}$argon2id$")
+                .doesNotContain("Registration123!");
         UserDetails beforeVerification = userDetailsService.loadUserByUsername(email);
         assertThat(beforeVerification.isEnabled()).isFalse();
 

@@ -25,6 +25,7 @@ public class RegistrationService {
     private final IdentityUserRepository users;
     private final EmailVerificationTokenRepository tokens;
     private final PasswordEncoder passwordEncoder;
+    private final PasswordPolicy passwordPolicy;
     private final EmailVerificationSender sender;
     private final IdentityHubProperties properties;
 
@@ -32,11 +33,13 @@ public class RegistrationService {
             IdentityUserRepository users,
             EmailVerificationTokenRepository tokens,
             PasswordEncoder passwordEncoder,
+            PasswordPolicy passwordPolicy,
             EmailVerificationSender sender,
             IdentityHubProperties properties) {
         this.users = users;
         this.tokens = tokens;
         this.passwordEncoder = passwordEncoder;
+        this.passwordPolicy = passwordPolicy;
         this.sender = sender;
         this.properties = properties;
     }
@@ -45,7 +48,7 @@ public class RegistrationService {
     public void register(String email, String displayName, String password) {
         String normalizedEmail = validEmail(email);
         String normalizedName = required(displayName, "Nome", 2, 200);
-        String validPassword = required(password, "Senha", 8, 200);
+        String validPassword = passwordPolicy.validate(password, normalizedEmail, normalizedName);
         if (users.findByEmailIgnoreCase(normalizedEmail).isPresent()) {
             return;
         }
