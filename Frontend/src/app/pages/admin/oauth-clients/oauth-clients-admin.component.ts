@@ -9,6 +9,7 @@ import {
   OAuthClientAdminApiService,
   OAuthClientCommand,
   OAuthClientView,
+  SecurityAuditEventView,
 } from '../../../core/services/oauth-client-admin-api.service';
 import { PageBreadcrumbComponent } from '../../../shared/components/common/page-breadcrumb/page-breadcrumb.component';
 
@@ -34,6 +35,8 @@ export class OAuthClientsAdminComponent implements OnInit {
   successMessage = '';
   tenants: AdminTenantContext[] = [];
   clients: OAuthClientView[] = [];
+  auditEvents: SecurityAuditEventView[] = [];
+  auditTotal = 0;
   selectedTenantId = '';
   editingClientId: string | null = null;
   selectedScopes = new Set<string>(['openid', 'profile']);
@@ -64,13 +67,17 @@ export class OAuthClientsAdminComponent implements OnInit {
     this.authenticated = false;
     this.tenants = [];
     this.clients = [];
+    this.auditEvents = [];
+    this.auditTotal = 0;
     this.selectedTenantId = '';
     this.loading = false;
   }
 
   async tenantChanged(): Promise<void> {
     this.resetForm();
-    await this.loadClients();
+    this.loading = true;
+    await Promise.all([this.loadClients(false), this.loadAudit(false)]);
+    this.loading = false;
   }
 
   edit(client: OAuthClientView): void {
@@ -122,7 +129,7 @@ export class OAuthClientsAdminComponent implements OnInit {
         this.successMessage = 'Cliente OAuth criado com sucesso.';
       }
       this.resetFormPreservingMessage();
-      await this.loadClients(false);
+      await Promise.all([this.loadClients(false), this.loadAudit(false)]);
     } catch (error) {
       this.errorMessage = this.describeError(error, 'Não foi possível salvar o cliente OAuth.');
     } finally {
@@ -141,7 +148,7 @@ export class OAuthClientsAdminComponent implements OnInit {
       await this.api.remove(this.selectedTenantId, client.clientId);
       this.successMessage = 'Cliente OAuth removido e sessões renováveis revogadas.';
       this.resetFormPreservingMessage();
-      await this.loadClients(false);
+      await Promise.all([this.loadClients(false), this.loadAudit(false)]);
     } catch (error) {
       this.errorMessage = this.describeError(error, 'Não foi possível remover o cliente OAuth.');
     } finally {
@@ -159,6 +166,10 @@ export class OAuthClientsAdminComponent implements OnInit {
 
   get canManage(): boolean {
     return this.selectedTenant?.permissions.includes('oauth.clients.manage') ?? false;
+  }
+
+  get canReadAudit(): boolean {
+    return this.selectedTenant?.permissions.includes('security.audit.read') ?? false;
   }
 
   private async initialize(): Promise<void> {
@@ -198,7 +209,7 @@ export class OAuthClientsAdminComponent implements OnInit {
     this.tenants = await this.api.context();
     const readableTenant = this.tenants.find(tenant => tenant.permissions.includes('oauth.clients.read'));
     this.selectedTenantId = readableTenant?.tenantId ?? this.tenants[0]?.tenantId ?? '';
-    await this.loadClients(false);
+    await Promise.all([this.loadClients(false), this.loadAudit(false)]);
     this.loading = false;
   }
 
@@ -218,6 +229,47 @@ export class OAuthClientsAdminComponent implements OnInit {
     } finally {
       this.loading = false;
     }
+  }
+
+  async loadAudit(showLoading = true): Promise<void> {
+    if (showLoading) {
+      this.loading = true;
+    }
+    this.auditEvents = [];
+    this.auditTotal = 0;
+    if (!this.selectedTenantId || !this.canReadAudit) {
+      if (showLoading) {
+        this.loading = false;
+      }
+      return;
+    }
+    try {
+      const audit = await this.api.audit(this.selectedTenantId);
+      this.auditEvents = audit.items;
+      this.auditTotal = audit.totalElements;
+    } catch (error) {
+      this.errorMessage = this.describeError(error, 'Não foi possível carregar a auditoria de segurança.');
+    } finally {
+      if (showLoading) {
+        this.loading = false;
+      }
+    }
+  }
+
+  auditEventLabel(eventType: string): string {
+    const labels: Record<string, string> = {
+      OAUTH_CLIENT_CREATED: 'Cliente OAuth criado',
+      OAUTH_CLIENT_UPDATED: 'Cliente OAuth atualizado',
+      OAUTH_CLIENT_DELETED: 'Cliente OAuth removido',
+      TENANT_MEMBERSHIP_ROLE_ASSIGNED: 'Papel de membership atribuído',
+      TENANT_MEMBERSHIP_SUSPENDED: 'Membership suspensa',
+      TENANT_MEMBERSHIP_REMOVED: 'Membership removida',
+    };
+    return labels[eventType] ?? eventType;
+  }
+
+  auditResultLabel(result: SecurityAuditEventView['result']): string {
+    return { SUCCEEDED: 'Concluída', DENIED: 'Negada', FAILED: 'Falhou' }[result];
   }
 
   private lines(value: string): string[] {

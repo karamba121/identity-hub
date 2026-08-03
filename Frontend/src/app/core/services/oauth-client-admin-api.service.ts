@@ -31,6 +31,26 @@ export interface OAuthClientCommand {
   scopes: string[];
 }
 
+export interface SecurityAuditEventView {
+  id: string;
+  occurredAt: string;
+  eventType: string;
+  result: 'SUCCEEDED' | 'DENIED' | 'FAILED';
+  reasonCode: string | null;
+  actorId: string;
+  targetType: string;
+  targetId: string;
+  correlationId: string;
+}
+
+export interface SecurityAuditPage {
+  items: SecurityAuditEventView[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class OAuthClientAdminApiService {
   constructor(
@@ -68,6 +88,16 @@ export class OAuthClientAdminApiService {
     return firstValueFrom(this.http.delete<void>(
       `${this.baseUrl(tenantId)}/${encodeURIComponent(clientId)}`,
       { headers: this.session.authorizationHeaders() },
+    ));
+  }
+
+  audit(tenantId: string, page = 0, size = 10): Promise<SecurityAuditPage> {
+    return firstValueFrom(this.http.get<SecurityAuditPage>(
+      `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/audit-events`,
+      {
+        headers: this.session.authorizationHeaders(),
+        params: { page, size },
+      },
     ));
   }
 

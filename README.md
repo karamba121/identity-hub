@@ -18,7 +18,7 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** treze fatias verticais executáveis. O repositório contém
+> **Estado atual:** quatorze fatias verticais executáveis. O repositório contém
 > Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
 > persistência PostgreSQL, tokens OIDC, um cliente público demonstrativo e uma
 > API protegida por issuer, audience e escopo. A terceira fatia acrescenta
@@ -43,7 +43,9 @@ context em um microsserviço artificial.
 > PKCE obrigatório, redirect URIs e escopos validados e autorização distinta
 > para consulta e mutação. A décima terceira fatia entrega a primeira área
 > administrativa no Angular/TailAdmin, com autenticação PKCE, seleção de tenant
-> pelas permissões efetivas e manutenção visual desses clientes. O
+> pelas permissões efetivas e manutenção visual desses clientes. A décima
+> quarta fatia registra em trilha append-only as mutações administrativas
+> concluídas, negadas ou falhas e oferece consulta paginada e tenant-aware. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 
@@ -289,6 +291,8 @@ O CRUD de clientes OAuth públicos por tenant está registrado em
 [`docs/vertical-slices/012-tenant-oauth-client-crud.md`](docs/vertical-slices/012-tenant-oauth-client-crud.md).
 A primeira superfície administrativa Angular está documentada em
 [`docs/vertical-slices/013-oauth-client-administration-ui.md`](docs/vertical-slices/013-oauth-client-administration-ui.md).
+A trilha de auditoria administrativa está registrada em
+[`docs/vertical-slices/014-administrative-security-audit.md`](docs/vertical-slices/014-administrative-security-audit.md).
 
 CQRS será usado apenas onde modelos de leitura e escrita tiverem necessidades
 materialmente diferentes. Eventos de domínio não serão usados como sinônimo de

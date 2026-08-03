@@ -29,12 +29,15 @@ public class OAuthClientAdministrationController {
 
     private final TenantPermissionAuthorizer authorizer;
     private final OAuthClientAdministrationService administration;
+    private final AdministrativeActionAuditor auditor;
 
     public OAuthClientAdministrationController(
             TenantPermissionAuthorizer authorizer,
-            OAuthClientAdministrationService administration) {
+            OAuthClientAdministrationService administration,
+            AdministrativeActionAuditor auditor) {
         this.authorizer = authorizer;
         this.administration = administration;
+        this.auditor = auditor;
     }
 
     @GetMapping
@@ -59,13 +62,21 @@ public class OAuthClientAdministrationController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable String tenantId,
             @RequestBody CreateOAuthClientRequest request) {
-        authorizer.require(jwt.getSubject(), tenantId, PermissionCode.OAUTH_CLIENTS_MANAGE);
-        OAuthClientView created = administration.create(tenantId, request.command());
-        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
-                .pathSegment(created.clientId())
-                .build()
-                .toUri();
-        return ResponseEntity.created(location).body(created);
+        return auditor.execute(
+                jwt.getSubject(),
+                tenantId,
+                PermissionCode.OAUTH_CLIENTS_MANAGE,
+                AdministrativeAuditEventType.OAUTH_CLIENT_CREATED,
+                "OAUTH_CLIENT",
+                request.clientId(),
+                () -> {
+                    OAuthClientView created = administration.create(tenantId, request.command());
+                    URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                            .pathSegment(created.clientId())
+                            .build()
+                            .toUri();
+                    return ResponseEntity.created(location).body(created);
+                });
     }
 
     @PutMapping("/{clientId}")
@@ -74,8 +85,14 @@ public class OAuthClientAdministrationController {
             @PathVariable String tenantId,
             @PathVariable String clientId,
             @RequestBody UpdateOAuthClientRequest request) {
-        authorizer.require(jwt.getSubject(), tenantId, PermissionCode.OAUTH_CLIENTS_MANAGE);
-        return administration.update(tenantId, clientId, request.command());
+        return auditor.execute(
+                jwt.getSubject(),
+                tenantId,
+                PermissionCode.OAUTH_CLIENTS_MANAGE,
+                AdministrativeAuditEventType.OAUTH_CLIENT_UPDATED,
+                "OAUTH_CLIENT",
+                clientId,
+                () -> administration.update(tenantId, clientId, request.command()));
     }
 
     @DeleteMapping("/{clientId}")
@@ -83,9 +100,17 @@ public class OAuthClientAdministrationController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable String tenantId,
             @PathVariable String clientId) {
-        authorizer.require(jwt.getSubject(), tenantId, PermissionCode.OAUTH_CLIENTS_MANAGE);
-        administration.delete(tenantId, clientId);
-        return ResponseEntity.noContent().build();
+        return auditor.execute(
+                jwt.getSubject(),
+                tenantId,
+                PermissionCode.OAUTH_CLIENTS_MANAGE,
+                AdministrativeAuditEventType.OAUTH_CLIENT_DELETED,
+                "OAUTH_CLIENT",
+                clientId,
+                () -> {
+                    administration.delete(tenantId, clientId);
+                    return ResponseEntity.noContent().build();
+                });
     }
 
     @ExceptionHandler(OAuthClientAdministrationException.class)

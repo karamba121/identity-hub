@@ -255,6 +255,77 @@ class OAuthClientAdministrationEndpointTests {
                 .andExpect(jsonPath("$.detail").value("Client ID já cadastrado"));
     }
 
+    @Test
+    void recordsSuccessfulClientChangesWithoutSensitiveRequestData() throws Exception {
+        Tenant tenant = tenant("oauth-audit-success");
+        TenantMembership actor = actor(
+                tenant,
+                "oauth-auditor",
+                PermissionCode.OAUTH_CLIENTS_MANAGE,
+                PermissionCode.SECURITY_AUDIT_READ);
+        String clientId = "audited-" + shortSuffix();
+        String redirectUri = "https://sensitive-location.example.test/callback";
+
+        mockMvc.perform(post(baseUrl(tenant))
+                        .header("Authorization", bearer(actor))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createPayload(
+                                clientId,
+                                "Cliente auditado",
+                                redirectUri,
+                                "https://sensitive-location.example.test/logout")))
+                .andExpect(status().isCreated());
+
+        String auditResponse = mockMvc.perform(get(auditUrl(tenant))
+                        .header("Authorization", bearer(actor)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].eventType").value("OAUTH_CLIENT_CREATED"))
+                .andExpect(jsonPath("$.items[0].result").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.items[0].actorId").value(actor.getUser().getId()))
+                .andExpect(jsonPath("$.items[0].targetId").value(clientId))
+                .andExpect(jsonPath("$.items[0].reasonCode").doesNotExist())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(auditResponse).doesNotContain(redirectUri, "Cliente auditado", "refresh_token", "access_token");
+    }
+
+    @Test
+    void recordsDeniedCrossTenantChangesAndProtectsTheAuditQuery() throws Exception {
+        Tenant actorTenant = tenant("oauth-audit-actor");
+        Tenant targetTenant = tenant("oauth-audit-target");
+        TenantMembership deniedActor = actor(
+                actorTenant, "denied-audit-actor", PermissionCode.OAUTH_CLIENTS_MANAGE);
+        TenantMembership targetAuditor = actor(
+                targetTenant, "target-auditor", PermissionCode.SECURITY_AUDIT_READ);
+        String clientId = "denied-" + shortSuffix();
+
+        mockMvc.perform(post(baseUrl(targetTenant))
+                        .header("Authorization", bearer(deniedActor))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createPayload(
+                                clientId,
+                                "Cliente negado",
+                                "https://denied.example.test/callback",
+                                "https://denied.example.test/logout")))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get(auditUrl(targetTenant))
+                        .header("Authorization", bearer(deniedActor)))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get(auditUrl(targetTenant))
+                        .header("Authorization", bearer(targetAuditor)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].eventType").value("OAUTH_CLIENT_CREATED"))
+                .andExpect(jsonPath("$.items[0].result").value("DENIED"))
+                .andExpect(jsonPath("$.items[0].reasonCode").value("MISSING_PERMISSION"))
+                .andExpect(jsonPath("$.items[0].actorId").value(deniedActor.getUser().getId()))
+                .andExpect(jsonPath("$.items[0].targetId").value(clientId));
+    }
+
     private Tenant tenant(String label) {
         String suffix = UUID.randomUUID().toString();
         return tenants.save(new Tenant(label + "-" + suffix, "Tenant " + label));
@@ -325,6 +396,10 @@ class OAuthClientAdministrationEndpointTests {
 
     private static String baseUrl(Tenant tenant) {
         return "/api/v1/admin/tenants/" + tenant.getId() + "/oauth-clients";
+    }
+
+    private static String auditUrl(Tenant tenant) {
+        return "/api/v1/admin/tenants/" + tenant.getId() + "/audit-events";
     }
 
     private static String shortSuffix() {

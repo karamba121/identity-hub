@@ -76,4 +76,5 @@ o callback administrativo derivado da URL pública da UI.
   automática do comando;
 - o fluxo autenticado completo ainda não foi exercitado no navegador nem em
   PostgreSQL real;
-- auditoria append-only das ações administrativas permanece planejada.
+- a fatia seguinte acrescenta a trilha append-only e sua consulta na mesma
+  superfície administrativa.

@@ -2,6 +2,7 @@ package com.karamba121.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -125,7 +126,11 @@ class TenantAdministrationEndpointTests {
     void managesMembershipsOnlyAfterScopeAudienceAndPermissionChecks() throws Exception {
         Tenant tenant = tenant("managed");
         TenantRole administrator = role(
-                tenant, "administrator", "Administrador", PermissionCode.TENANT_ACCESS_MANAGE);
+                tenant,
+                "administrator",
+                "Administrador",
+                PermissionCode.TENANT_ACCESS_MANAGE,
+                PermissionCode.SECURITY_AUDIT_READ);
         TenantRole operator = role(tenant, "operator", "Operador");
         TenantMembership actor = membership(tenant, administrator, "actor-admin");
         TenantMembership roleTarget = membership(tenant, null, "role-target");
@@ -151,13 +156,28 @@ class TenantAdministrationEndpointTests {
         assertThat(assigned.getRole().getId()).isEqualTo(operator.getId());
         assertThat(suspended.getStatus()).isEqualTo(MembershipStatus.SUSPENDED);
         assertThat(memberships.existsById(removalTarget.getId())).isFalse();
+
+        mockMvc.perform(get(auditUrl(tenant))
+                        .header("Authorization", "Bearer " + adminToken(actor)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(3))
+                .andExpect(jsonPath("$.items[*].eventType", org.hamcrest.Matchers.containsInAnyOrder(
+                        "TENANT_MEMBERSHIP_ROLE_ASSIGNED",
+                        "TENANT_MEMBERSHIP_SUSPENDED",
+                        "TENANT_MEMBERSHIP_REMOVED")))
+                .andExpect(jsonPath("$.items[*].result", org.hamcrest.Matchers.everyItem(
+                        org.hamcrest.Matchers.equalTo("SUCCEEDED"))));
     }
 
     @Test
     void returnsConflictWhenLastAdministratorWouldBeLost() throws Exception {
         Tenant tenant = tenant("last-admin-api");
         TenantRole administrator = role(
-                tenant, "administrator", "Administrador", PermissionCode.TENANT_ACCESS_MANAGE);
+                tenant,
+                "administrator",
+                "Administrador",
+                PermissionCode.TENANT_ACCESS_MANAGE,
+                PermissionCode.SECURITY_AUDIT_READ);
         TenantMembership actor = membership(tenant, administrator, "last-admin");
 
         mockMvc.perform(delete(url(tenant, actor))
@@ -167,6 +187,13 @@ class TenantAdministrationEndpointTests {
                         "O último administrador válido do tenant não pode ser removido ou rebaixado"));
 
         assertThat(memberships.existsById(actor.getId())).isTrue();
+        mockMvc.perform(get(auditUrl(tenant))
+                        .header("Authorization", "Bearer " + adminToken(actor)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].eventType").value("TENANT_MEMBERSHIP_REMOVED"))
+                .andExpect(jsonPath("$.items[0].result").value("FAILED"))
+                .andExpect(jsonPath("$.items[0].reasonCode").value("LAST_ADMINISTRATOR"));
     }
 
     @Test
@@ -240,5 +267,9 @@ class TenantAdministrationEndpointTests {
     private static String url(Tenant tenant, TenantMembership membership) {
         return "/api/v1/admin/tenants/" + tenant.getId()
                 + "/memberships/" + membership.getId();
+    }
+
+    private static String auditUrl(Tenant tenant) {
+        return "/api/v1/admin/tenants/" + tenant.getId() + "/audit-events";
     }
 }

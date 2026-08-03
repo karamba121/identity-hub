@@ -181,5 +181,59 @@
         </section>
       </div>
     }
+
+    @if (canReadAudit) {
+      <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-gray-800 sm:px-6">
+          <div>
+            <h2 class="font-semibold text-gray-900 dark:text-white">Auditoria administrativa</h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ auditTotal }} evento(s) append-only neste tenant</p>
+          </div>
+          <button type="button" (click)="loadAudit()" [disabled]="loading"
+            class="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-300">
+            Atualizar
+          </button>
+        </div>
+        @if (auditEvents.length === 0) {
+          <div class="px-6 py-10 text-center text-sm text-gray-500">Nenhuma alteração administrativa foi auditada neste tenant.</div>
+        } @else {
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
+              <thead class="bg-gray-50 dark:bg-gray-900/50">
+                <tr class="text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                  <th class="px-5 py-3 sm:px-6">Quando</th>
+                  <th class="px-5 py-3">Ação</th>
+                  <th class="px-5 py-3">Resultado</th>
+                  <th class="px-5 py-3">Alvo</th>
+                  <th class="px-5 py-3">Ator</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100 text-sm dark:divide-gray-800">
+                @for (event of auditEvents; track event.id) {
+                  <tr>
+                    <td class="whitespace-nowrap px-5 py-4 text-gray-500 sm:px-6">{{ event.occurredAt | date:'dd/MM/yyyy HH:mm:ss' }}</td>
+                    <td class="px-5 py-4 font-medium text-gray-800 dark:text-gray-200">{{ auditEventLabel(event.eventType) }}</td>
+                    <td class="px-5 py-4">
+                      <span class="rounded-full px-2.5 py-1 text-xs font-medium"
+                        [class.bg-success-50]="event.result === 'SUCCEEDED'"
+                        [class.text-success-700]="event.result === 'SUCCEEDED'"
+                        [class.bg-error-50]="event.result !== 'SUCCEEDED'"
+                        [class.text-error-700]="event.result !== 'SUCCEEDED'">
+                        {{ auditResultLabel(event.result) }}
+                      </span>
+                      @if (event.reasonCode) {
+                        <p class="mt-1 text-xs text-gray-400">{{ event.reasonCode }}</p>
+                      }
+                    </td>
+                    <td class="px-5 py-4 font-mono text-xs text-gray-600 dark:text-gray-400">{{ event.targetId }}</td>
+                    <td class="px-5 py-4 font-mono text-xs text-gray-500">{{ event.actorId }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    }
   }
 </div>

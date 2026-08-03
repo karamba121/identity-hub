@@ -131,7 +131,7 @@ rotação e nenhuma sessão revogada volta a conceder acesso.
 - [x] aplicar tenant e permission checks nas APIs administrativas;
 - [x] criar CRUD de clientes OAuth com redirect URIs e escopos;
 - [x] criar interface Angular administrativa;
-- [ ] auditar alterações com ator, tenant, alvo e resultado;
+- [x] auditar alterações com ator, tenant, alvo e resultado;
 - [ ] testar isolamento horizontal entre tenants.
 
 **Critério de aceite:** uma suíte negativa comprova que usuário, administrador e

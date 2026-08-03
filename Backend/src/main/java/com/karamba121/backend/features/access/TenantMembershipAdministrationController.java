@@ -18,14 +18,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/admin/tenants/{tenantId}/memberships")
 public class TenantMembershipAdministrationController {
 
-    private final TenantPermissionAuthorizer authorizer;
     private final TenantMembershipAdministrationService administration;
+    private final AdministrativeActionAuditor auditor;
 
     public TenantMembershipAdministrationController(
-            TenantPermissionAuthorizer authorizer,
-            TenantMembershipAdministrationService administration) {
-        this.authorizer = authorizer;
+            TenantMembershipAdministrationService administration,
+            AdministrativeActionAuditor auditor) {
         this.administration = administration;
+        this.auditor = auditor;
     }
 
     @PutMapping("/{membershipId}/role")
@@ -34,9 +34,17 @@ public class TenantMembershipAdministrationController {
             @PathVariable String tenantId,
             @PathVariable String membershipId,
             @RequestBody AssignRoleRequest request) {
-        authorizer.require(jwt.getSubject(), tenantId, PermissionCode.TENANT_ACCESS_MANAGE);
-        administration.assignRole(tenantId, membershipId, required(request.roleId(), "Papel"));
-        return ResponseEntity.noContent().build();
+        return auditor.execute(
+                jwt.getSubject(),
+                tenantId,
+                PermissionCode.TENANT_ACCESS_MANAGE,
+                AdministrativeAuditEventType.TENANT_MEMBERSHIP_ROLE_ASSIGNED,
+                "TENANT_MEMBERSHIP",
+                membershipId,
+                () -> {
+                    administration.assignRole(tenantId, membershipId, required(request.roleId(), "Papel"));
+                    return ResponseEntity.noContent().build();
+                });
     }
 
     @PostMapping("/{membershipId}/suspend")
@@ -44,9 +52,17 @@ public class TenantMembershipAdministrationController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable String tenantId,
             @PathVariable String membershipId) {
-        authorizer.require(jwt.getSubject(), tenantId, PermissionCode.TENANT_ACCESS_MANAGE);
-        administration.suspend(tenantId, membershipId);
-        return ResponseEntity.noContent().build();
+        return auditor.execute(
+                jwt.getSubject(),
+                tenantId,
+                PermissionCode.TENANT_ACCESS_MANAGE,
+                AdministrativeAuditEventType.TENANT_MEMBERSHIP_SUSPENDED,
+                "TENANT_MEMBERSHIP",
+                membershipId,
+                () -> {
+                    administration.suspend(tenantId, membershipId);
+                    return ResponseEntity.noContent().build();
+                });
     }
 
     @DeleteMapping("/{membershipId}")
@@ -54,9 +70,17 @@ public class TenantMembershipAdministrationController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable String tenantId,
             @PathVariable String membershipId) {
-        authorizer.require(jwt.getSubject(), tenantId, PermissionCode.TENANT_ACCESS_MANAGE);
-        administration.remove(tenantId, membershipId);
-        return ResponseEntity.noContent().build();
+        return auditor.execute(
+                jwt.getSubject(),
+                tenantId,
+                PermissionCode.TENANT_ACCESS_MANAGE,
+                AdministrativeAuditEventType.TENANT_MEMBERSHIP_REMOVED,
+                "TENANT_MEMBERSHIP",
+                membershipId,
+                () -> {
+                    administration.remove(tenantId, membershipId);
+                    return ResponseEntity.noContent().build();
+                });
     }
 
     @ExceptionHandler(LastTenantAdministratorException.class)
