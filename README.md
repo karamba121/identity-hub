@@ -18,7 +18,7 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** onze fatias verticais executáveis. O repositório contém
+> **Estado atual:** doze fatias verticais executáveis. O repositório contém
 > Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
 > persistência PostgreSQL, tokens OIDC, um cliente público demonstrativo e uma
 > API protegida por issuer, audience e escopo. A terceira fatia acrescenta
@@ -38,7 +38,10 @@ context em um microsserviço artificial.
 > válido contra rebaixamento, suspensão e remoção, inclusive sob concorrência. A
 > décima primeira fatia expõe essas mutações por uma API administrativa que
 > combina audience e scope próprios com a permissão efetiva do ator no tenant,
-> rejeitando acesso horizontal entre organizações. O
+> rejeitando acesso horizontal entre organizações. A décima segunda fatia
+> acrescenta CRUD administrativo de clientes OAuth públicos por tenant, com
+> PKCE obrigatório, redirect URIs e escopos validados e autorização distinta
+> para consulta e mutação. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 
@@ -280,6 +283,8 @@ A invariância do último administrador está documentada em
 [`docs/vertical-slices/010-last-tenant-administrator.md`](docs/vertical-slices/010-last-tenant-administrator.md),
 e a autorização das primeiras operações administrativas em
 [`docs/vertical-slices/011-tenant-administration-authorization.md`](docs/vertical-slices/011-tenant-administration-authorization.md).
+O CRUD de clientes OAuth públicos por tenant está registrado em
+[`docs/vertical-slices/012-tenant-oauth-client-crud.md`](docs/vertical-slices/012-tenant-oauth-client-crud.md).
 
 CQRS será usado apenas onde modelos de leitura e escrita tiverem necessidades
 materialmente diferentes. Eventos de domínio não serão usados como sinônimo de
