@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.karamba121.backend.config.IdentityHubProperties;
+import com.karamba121.backend.features.session.CriticalSessionInvalidationService;
 
 @Service
 public class PasswordRecoveryService {
@@ -25,6 +26,7 @@ public class PasswordRecoveryService {
     private final PasswordPolicy passwordPolicy;
     private final PasswordRecoverySender sender;
     private final IdentityHubProperties properties;
+    private final CriticalSessionInvalidationService sessionInvalidation;
 
     public PasswordRecoveryService(
             IdentityUserRepository users,
@@ -32,13 +34,15 @@ public class PasswordRecoveryService {
             PasswordEncoder passwordEncoder,
             PasswordPolicy passwordPolicy,
             PasswordRecoverySender sender,
-            IdentityHubProperties properties) {
+            IdentityHubProperties properties,
+            CriticalSessionInvalidationService sessionInvalidation) {
         this.users = users;
         this.tokens = tokens;
         this.passwordEncoder = passwordEncoder;
         this.passwordPolicy = passwordPolicy;
         this.sender = sender;
         this.properties = properties;
+        this.sessionInvalidation = sessionInvalidation;
     }
 
     @Transactional
@@ -76,8 +80,10 @@ public class PasswordRecoveryService {
         Instant now = Instant.now();
         token.consume(now);
         user.updatePasswordHash(passwordEncoder.encode(validPassword));
+        user.advanceCredentialVersion();
         user.resetLoginFailures();
         tokens.revokeActiveByUserId(user.getId(), now);
+        sessionInvalidation.invalidateForCriticalEvent(user.getEmail());
     }
 
     private String recoveryUrl(String rawToken) {

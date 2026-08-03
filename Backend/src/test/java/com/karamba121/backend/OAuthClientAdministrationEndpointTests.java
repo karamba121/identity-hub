@@ -349,6 +349,7 @@ class OAuthClientAdministrationEndpointTests {
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("http://localhost")
                 .subject(actor.getUser().getId())
+                .claim("credential_version", "0")
                 .audience(List.of(AdminResourceContract.AUDIENCE))
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(300))

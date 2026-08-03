@@ -27,6 +27,10 @@ declare qual registro foi substituído.
 | [007](007-security-audit-and-sensitive-data.md) | Auditoria e dados sensíveis | Aceito |
 | [008](008-tailadmin-authorization-interaction-ui.md) | TailAdmin como interface de login e consentimento | Aceito |
 | [009](009-password-policy-and-hash-evolution.md) | Política de senha e evolução de hash | Aceito |
+| [010](010-secure-password-recovery.md) | Recuperação segura de senha | Aceito |
+| [011](011-progressive-login-lockout.md) | Bloqueio progressivo de login | Aceito |
+| [012](012-combined-signal-rate-limiting.md) | Rate limiting por sinais combinados | Aceito |
+| [013](013-critical-session-invalidation.md) | Invalidação após eventos críticos de credencial | Aceito |
 
 ## Template
 

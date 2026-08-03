@@ -41,6 +41,9 @@ public class IdentityUser {
     @Column(name = "last_failed_login_at")
     private Instant lastFailedLoginAt;
 
+    @Column(name = "credential_version", nullable = false)
+    private long credentialVersion;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -102,6 +105,10 @@ public class IdentityUser {
         return lastFailedLoginAt;
     }
 
+    public long getCredentialVersion() {
+        return credentialVersion;
+    }
+
     public boolean isTemporarilyLocked(Instant now) {
         return lockedUntil != null && lockedUntil.isAfter(now);
     }
@@ -149,6 +156,13 @@ public class IdentityUser {
             throw new IllegalArgumentException("Hash de senha é obrigatório");
         }
         this.passwordHash = passwordHash;
+    }
+
+    public void advanceCredentialVersion() {
+        if (credentialVersion == Long.MAX_VALUE) {
+            throw new IllegalStateException("Versão da credencial esgotada");
+        }
+        credentialVersion++;
     }
 
     private static String normalizeEmail(String email) {

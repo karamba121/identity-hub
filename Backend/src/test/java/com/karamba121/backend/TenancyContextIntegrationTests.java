@@ -114,6 +114,7 @@ class TenancyContextIntegrationTests {
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("http://localhost")
                 .subject(subject)
+                .claim("credential_version", "0")
                 .audience(List.of(DemoResourceContract.AUDIENCE))
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(300))

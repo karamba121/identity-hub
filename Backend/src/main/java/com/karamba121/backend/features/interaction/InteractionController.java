@@ -17,7 +17,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
-import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy;
+import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.stereotype.Controller;
@@ -43,22 +43,23 @@ public class InteractionController {
 
     private final SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder
             .getContextHolderStrategy();
-    private final ChangeSessionIdAuthenticationStrategy sessionStrategy = new ChangeSessionIdAuthenticationStrategy();
-
     private final AuthorizationInteractionService interactions;
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository securityContextRepository;
     private final RateLimitService rateLimits;
+    private final SessionAuthenticationStrategy sessionStrategy;
 
     public InteractionController(
             AuthorizationInteractionService interactions,
             AuthenticationManager authenticationManager,
             SecurityContextRepository securityContextRepository,
-            RateLimitService rateLimits) {
+            RateLimitService rateLimits,
+            SessionAuthenticationStrategy sessionStrategy) {
         this.interactions = interactions;
         this.authenticationManager = authenticationManager;
         this.securityContextRepository = securityContextRepository;
         this.rateLimits = rateLimits;
+        this.sessionStrategy = sessionStrategy;
     }
 
     @GetMapping("/{interactionId}")

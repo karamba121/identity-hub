@@ -110,6 +110,7 @@ class PasswordRecoveryIntegrationTests {
         assertThat(passwordEncoder.matches(ORIGINAL_PASSWORD, updated.getPasswordHash())).isFalse();
         assertThat(updated.getFailedLoginAttempts()).isZero();
         assertThat(updated.getLockedUntil()).isNull();
+        assertThat(updated.getCredentialVersion()).isEqualTo(1);
         assertThat(jdbc.queryForObject(
                 "select consumed_at from password_recovery_token where user_id = ?",
                 Instant.class,

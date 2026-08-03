@@ -18,7 +18,7 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** vinte fatias verticais executáveis. O repositório contém
+> **Estado atual:** vinte e uma fatias verticais executáveis. O repositório contém
 > Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
 > persistência PostgreSQL, tokens OIDC, um cliente público demonstrativo e uma
 > API protegida por issuer, audience e escopo. A terceira fatia acrescenta
@@ -60,6 +60,8 @@ context em um microsserviço artificial.
 > conta e sem permitir que tentativas durante o bloqueio prolonguem o prazo. A
 > vigésima fatia limita login, cadastro, verificação e recuperação combinando
 > identificador, origem e o par dos dois, sem persistir esses sinais em claro. O
+> vigésimo primeiro incremento encerra grants OAuth, refresh tokens, access
+> tokens anteriores e sessões SSO depois de uma recuperação de senha válida. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 
@@ -319,6 +321,8 @@ O bloqueio progressivo de login está documentado em
 [`docs/vertical-slices/019-progressive-login-lockout.md`](docs/vertical-slices/019-progressive-login-lockout.md).
 O rate limiting por sinais combinados está documentado em
 [`docs/vertical-slices/020-combined-signal-rate-limiting.md`](docs/vertical-slices/020-combined-signal-rate-limiting.md).
+A invalidação após eventos críticos de credencial está documentada em
+[`docs/vertical-slices/021-critical-session-invalidation.md`](docs/vertical-slices/021-critical-session-invalidation.md).
 
 CQRS será usado apenas onde modelos de leitura e escrita tiverem necessidades
 materialmente diferentes. Eventos de domínio não serão usados como sinônimo de

@@ -56,10 +56,17 @@ import org.springframework.security.oauth2.server.authorization.token.OAuth2Toke
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy;
+import org.springframework.security.web.authentication.session.CompositeSessionAuthenticationStrategy;
+import org.springframework.security.web.authentication.session.RegisterSessionAuthenticationStrategy;
+import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.core.session.SessionRegistryImpl;
+import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.transaction.PlatformTransactionManager;
 
@@ -79,6 +86,7 @@ import com.karamba121.backend.features.session.PublicClientRefreshTokenGenerator
 import com.karamba121.backend.features.session.PublicRefreshClientAuthenticationConverter;
 import com.karamba121.backend.features.session.PublicRefreshClientAuthenticationProvider;
 import com.karamba121.backend.features.session.SessionMetrics;
+import com.karamba121.backend.features.session.CredentialVersionTokenValidator;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.JWKSource;
@@ -95,7 +103,8 @@ public class SecurityConfig {
             PlatformTransactionManager transactionManager,
             OAuth2TokenGenerator<?> tokenGenerator,
             RegisteredClientRepository registeredClients,
-            SessionMetrics sessionMetrics) throws Exception {
+            SessionMetrics sessionMetrics,
+            SessionRegistry sessionRegistry) throws Exception {
         http.oauth2AuthorizationServer(authorizationServer -> authorizationServer
                 .tokenGenerator(tokenGenerator)
                 .clientAuthentication(client -> client
@@ -120,6 +129,9 @@ public class SecurityConfig {
                 .getConfigurer(OAuth2AuthorizationServerConfigurer.class);
         http.securityMatcher(authorizationServerConfigurer.getEndpointsMatcher())
                 .authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated())
+                .sessionManagement(session -> session
+                        .maximumSessions(-1)
+                        .sessionRegistry(sessionRegistry))
                 .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(loginEntryPoint));
         return http.build();
     }
@@ -158,7 +170,9 @@ public class SecurityConfig {
 
     @Bean
     @Order(4)
-    SecurityFilterChain applicationSecurityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain applicationSecurityFilterChain(
+            HttpSecurity http,
+            SessionRegistry sessionRegistry) throws Exception {
         CookieCsrfTokenRepository csrfRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         csrfRepository.setCookiePath("/");
         CsrfTokenRequestAttributeHandler csrfRequestHandler = new CsrfTokenRequestAttributeHandler();
@@ -177,6 +191,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfRepository)
                         .csrfTokenRequestHandler(csrfRequestHandler))
+                .sessionManagement(session -> session
+                        .maximumSessions(-1)
+                        .sessionRegistry(sessionRegistry))
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(restAuthenticationEntryPoint()));
         return http.build();
@@ -241,6 +258,23 @@ public class SecurityConfig {
     }
 
     @Bean
+    SessionRegistry sessionRegistry() {
+        return new SessionRegistryImpl();
+    }
+
+    @Bean
+    HttpSessionEventPublisher httpSessionEventPublisher() {
+        return new HttpSessionEventPublisher();
+    }
+
+    @Bean
+    SessionAuthenticationStrategy sessionAuthenticationStrategy(SessionRegistry sessionRegistry) {
+        return new CompositeSessionAuthenticationStrategy(List.of(
+                new ChangeSessionIdAuthenticationStrategy(),
+                new RegisterSessionAuthenticationStrategy(sessionRegistry)));
+    }
+
+    @Bean
     AuthorizationServerSettings authorizationServerSettings(IdentityHubProperties properties) {
         return AuthorizationServerSettings.builder().issuer(properties.issuer()).build();
     }
@@ -261,7 +295,8 @@ public class SecurityConfig {
     @Bean("resourceServerJwtDecoder")
     JwtDecoder resourceServerJwtDecoder(
             JWKSource<SecurityContext> jwkSource,
-            IdentityHubProperties properties) {
+            IdentityHubProperties properties,
+            IdentityUserRepository users) {
         JwtDecoder delegate = OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource);
         OAuth2TokenValidator<Jwt> issuer = JwtValidators.createDefaultWithIssuer(properties.issuer());
         OAuth2TokenValidator<Jwt> audience = token -> token.getAudience().contains(DemoResourceContract.AUDIENCE)
@@ -270,7 +305,8 @@ public class SecurityConfig {
                         "invalid_token",
                         "Access token não foi emitido para a API demonstrativa",
                         null));
-        OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(issuer, audience);
+        OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(
+                issuer, audience, new CredentialVersionTokenValidator(users));
         return encodedToken -> {
             Jwt jwt = delegate.decode(encodedToken);
             OAuth2TokenValidatorResult result = validator.validate(jwt);
@@ -284,7 +320,8 @@ public class SecurityConfig {
     @Bean("adminResourceJwtDecoder")
     JwtDecoder adminResourceJwtDecoder(
             JWKSource<SecurityContext> jwkSource,
-            IdentityHubProperties properties) {
+            IdentityHubProperties properties,
+            IdentityUserRepository users) {
         JwtDecoder delegate = OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource);
         OAuth2TokenValidator<Jwt> issuer = JwtValidators.createDefaultWithIssuer(properties.issuer());
         OAuth2TokenValidator<Jwt> audience = token -> token.getAudience().contains(AdminResourceContract.AUDIENCE)
@@ -293,7 +330,8 @@ public class SecurityConfig {
                         "invalid_token",
                         "Access token não foi emitido para a API administrativa",
                         null));
-        OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(issuer, audience);
+        OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(
+                issuer, audience, new CredentialVersionTokenValidator(users));
         return encodedToken -> {
             Jwt jwt = delegate.decode(encodedToken);
             OAuth2TokenValidatorResult result = validator.validate(jwt);
@@ -327,7 +365,8 @@ public class SecurityConfig {
                     .subject(user.getId())
                     .claim("name", user.getDisplayName())
                     .claim("email", user.getEmail())
-                    .claim("email_verified", user.isEmailVerified()));
+                    .claim("email_verified", user.isEmailVerified())
+                    .claim(CredentialVersionTokenValidator.CLAIM, Long.toString(user.getCredentialVersion())));
         };
     }
 

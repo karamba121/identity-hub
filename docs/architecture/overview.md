@@ -8,7 +8,7 @@ mantém relações de acesso por tenant e emite credenciais verificáveis para
 resource servers.
 
 O repositório contém um backend Spring Boot 4.0.7/Java 17 e um frontend Angular
-21 baseado no TailAdmin. As vinte primeiras fatias verticais implementam
+21 baseado no TailAdmin. As vinte e uma primeiras fatias verticais implementam
 Authorization Code com PKCE, login e consentimento por interação opaca,
 persistência PostgreSQL, metadata, JWK Set, ID token, access token, UserInfo e
 uma API protegida por issuer, audience e escopo. Refresh tokens opacos são
@@ -45,8 +45,13 @@ seguem uma política central de frases longas e bloqueio contextual, usam
 Argon2id com custo de memória e migram hashes BCrypt legados após autenticação
 válida. Operações públicas sensíveis também passam por janelas de rate limiting
 que combinam identificador, origem e ambos, mantêm somente chaves hash e expõem
-rejeições por métricas de cardinalidade limitada. Administração de memberships e
-papéis, clientes confidenciais, logout global entre clientes, MFA, rotação
+rejeições por métricas de cardinalidade limitada. A recuperação de senha
+também revoga os grants e famílias de refresh token do principal, expira suas
+sessões SSO depois do commit e incrementa uma versão de
+credencial validada pelos resource servers internos. Assim, access tokens
+anteriores deixam de funcionar sem aguardar seu vencimento. Administração de
+memberships e papéis, clientes confidenciais, logout global entre clientes,
+MFA, rotação
 durável de chaves e operação de produção continuam planejados.
 
 As evidências e limitações dos incrementos executáveis estão nas fatias
@@ -69,7 +74,8 @@ As evidências e limitações dos incrementos executáveis estão nas fatias
 [017](../vertical-slices/017-password-policy-and-hash-evolution.md),
 [018](../vertical-slices/018-secure-password-recovery.md),
 [019](../vertical-slices/019-progressive-login-lockout.md) e
-[020](../vertical-slices/020-combined-signal-rate-limiting.md).
+[020](../vertical-slices/020-combined-signal-rate-limiting.md) e
+[021](../vertical-slices/021-critical-session-invalidation.md).
 
 ## Objetivos arquiteturais
 
