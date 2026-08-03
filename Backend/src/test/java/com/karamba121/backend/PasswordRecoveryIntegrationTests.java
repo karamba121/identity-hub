@@ -94,6 +94,12 @@ class PasswordRecoveryIntegrationTests {
         assertThat(storedHash).hasSize(64).isNotEqualTo(rawToken);
         assertThat(passwordEncoder.matches(ORIGINAL_PASSWORD, user.getPasswordHash())).isTrue();
 
+        jdbc.update(
+                "update identity_user set failed_login_attempts = 5, locked_until = ? where id = ?",
+                Instant.now().plusSeconds(60),
+                user.getId());
+        entityManager.clear();
+
         completeRecovery(rawToken, NEW_PASSWORD).andExpect(status().isNoContent());
 
         entityManager.flush();
@@ -102,6 +108,8 @@ class PasswordRecoveryIntegrationTests {
         assertThat(updated.getPasswordHash()).startsWith("{argon2id}$argon2id$");
         assertThat(passwordEncoder.matches(NEW_PASSWORD, updated.getPasswordHash())).isTrue();
         assertThat(passwordEncoder.matches(ORIGINAL_PASSWORD, updated.getPasswordHash())).isFalse();
+        assertThat(updated.getFailedLoginAttempts()).isZero();
+        assertThat(updated.getLockedUntil()).isNull();
         assertThat(jdbc.queryForObject(
                 "select consumed_at from password_recovery_token where user_id = ?",
                 Instant.class,

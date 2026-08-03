@@ -1,5 +1,7 @@
 package com.karamba121.backend.features.identity;
 
+import java.time.Instant;
+
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -27,6 +29,7 @@ public class IdentityUserDetailsService implements UserDetailsService, UserDetai
                 .password(user.getPasswordHash())
                 .authorities(new SimpleGrantedAuthority("ROLE_USER"))
                 .disabled(!user.isEnabled() || !user.isEmailVerified())
+                .accountLocked(user.isTemporarilyLocked(Instant.now()))
                 .build();
     }
 

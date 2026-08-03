@@ -13,6 +13,10 @@ public interface IdentityUserRepository extends JpaRepository<IdentityUser, Stri
     Optional<IdentityUser> findByEmailIgnoreCase(String email);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select user from IdentityUser user where lower(user.email) = lower(:email)")
+    Optional<IdentityUser> findByEmailForUpdate(String email);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select user from IdentityUser user where user.id = :id")
     Optional<IdentityUser> findByIdForUpdate(String id);
 }

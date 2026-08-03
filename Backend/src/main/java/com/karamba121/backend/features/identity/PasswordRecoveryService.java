@@ -76,6 +76,7 @@ public class PasswordRecoveryService {
         Instant now = Instant.now();
         token.consume(now);
         user.updatePasswordHash(passwordEncoder.encode(validPassword));
+        user.resetLoginFailures();
         tokens.revokeActiveByUserId(user.getId(), now);
     }
 

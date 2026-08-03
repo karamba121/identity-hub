@@ -1,5 +1,6 @@
 package com.karamba121.backend.features.identity;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -30,6 +31,15 @@ public class IdentityUser {
 
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified;
+
+    @Column(name = "failed_login_attempts", nullable = false)
+    private int failedLoginAttempts;
+
+    @Column(name = "locked_until")
+    private Instant lockedUntil;
+
+    @Column(name = "last_failed_login_at")
+    private Instant lastFailedLoginAt;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -78,6 +88,56 @@ public class IdentityUser {
 
     public boolean isEmailVerified() {
         return emailVerified;
+    }
+
+    public int getFailedLoginAttempts() {
+        return failedLoginAttempts;
+    }
+
+    public Instant getLockedUntil() {
+        return lockedUntil;
+    }
+
+    public Instant getLastFailedLoginAt() {
+        return lastFailedLoginAt;
+    }
+
+    public boolean isTemporarilyLocked(Instant now) {
+        return lockedUntil != null && lockedUntil.isAfter(now);
+    }
+
+    public void registerFailedLogin(
+            Instant now,
+            int failureThreshold,
+            Duration initialLockDuration,
+            Duration maximumLockDuration) {
+        if (isTemporarilyLocked(now)) {
+            return;
+        }
+        if (failedLoginAttempts < Integer.MAX_VALUE) {
+            failedLoginAttempts++;
+        }
+        lastFailedLoginAt = now;
+        if (failedLoginAttempts < failureThreshold) {
+            lockedUntil = null;
+            return;
+        }
+
+        Duration duration = initialLockDuration;
+        int escalations = Math.min(failedLoginAttempts - failureThreshold, 20);
+        for (int index = 0; index < escalations && duration.compareTo(maximumLockDuration) < 0; index++) {
+            duration = duration.multipliedBy(2);
+        }
+        if (duration.compareTo(maximumLockDuration) > 0) {
+            duration = maximumLockDuration;
+        }
+        lockedUntil = now.plus(duration);
+    }
+
+    public void resetLoginFailures() {
+        failedLoginAttempts = 0;
+        lockedUntil = null;
+        lastFailedLoginAt = null;
     }
 
     public void verifyEmail() {

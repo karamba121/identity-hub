@@ -8,7 +8,7 @@ mantém relações de acesso por tenant e emite credenciais verificáveis para
 resource servers.
 
 O repositório contém um backend Spring Boot 4.0.7/Java 17 e um frontend Angular
-21 baseado no TailAdmin. As dezoito primeiras fatias verticais implementam
+21 baseado no TailAdmin. As dezenove primeiras fatias verticais implementam
 Authorization Code com PKCE, login e consentimento por interação opaca,
 persistência PostgreSQL, metadata, JWK Set, ID token, access token, UserInfo e
 uma API protegida por issuer, audience e escopo. Refresh tokens opacos são
@@ -38,7 +38,9 @@ entrega por SMTP um link de verificação com token de uso único armazenado
 somente como hash e impede autenticação antes da confirmação. A recuperação de
 senha também usa tokens opacos persistidos apenas como hash, expira em 15
 minutos, revoga solicitações anteriores e não diferencia contas em respostas
-públicas. Novas senhas
+públicas. O login persiste falhas por identidade e aplica bloqueio temporário progressivo
+de um a quinze minutos a partir da quinta falha. A resposta pública permanece
+genérica e tentativas durante o bloqueio não renovam o prazo. Novas senhas
 seguem uma política central de frases longas e bloqueio contextual, usam
 Argon2id com custo de memória e migram hashes BCrypt legados após autenticação
 válida. Administração de memberships e
@@ -61,9 +63,10 @@ As evidências e limitações dos incrementos executáveis estão nas fatias
 [013](../vertical-slices/013-oauth-client-administration-ui.md),
 [014](../vertical-slices/014-administrative-security-audit.md),
 [015](../vertical-slices/015-tenant-horizontal-isolation.md),
-[016](../vertical-slices/016-email-registration-and-verification.md) e
-[017](../vertical-slices/017-password-policy-and-hash-evolution.md) e
-[018](../vertical-slices/018-secure-password-recovery.md).
+[016](../vertical-slices/016-email-registration-and-verification.md),
+[017](../vertical-slices/017-password-policy-and-hash-evolution.md),
+[018](../vertical-slices/018-secure-password-recovery.md) e
+[019](../vertical-slices/019-progressive-login-lockout.md).
 
 ## Objetivos arquiteturais
 

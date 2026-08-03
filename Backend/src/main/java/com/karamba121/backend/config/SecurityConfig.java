@@ -65,6 +65,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import com.karamba121.backend.features.identity.IdentityUserDetailsService;
 import com.karamba121.backend.features.identity.IdentityUserRepository;
+import com.karamba121.backend.features.identity.LoginAttemptService;
+import com.karamba121.backend.features.identity.LoginProtectionAuthenticationProvider;
 import com.karamba121.backend.features.identity.NormalizingPasswordEncoder;
 import com.karamba121.backend.features.access.AdminResourceContract;
 import com.karamba121.backend.features.interaction.LoginInteractionEntryPoint;
@@ -224,11 +226,13 @@ public class SecurityConfig {
     @Bean
     AuthenticationManager authenticationManager(
             IdentityUserDetailsService userDetailsService,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            LoginAttemptService loginAttempts) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder);
         provider.setUserDetailsPasswordService(userDetailsService);
-        return new ProviderManager(List.of(provider));
+        return new ProviderManager(List.of(
+                new LoginProtectionAuthenticationProvider(provider, loginAttempts)));
     }
 
     @Bean

@@ -11,6 +11,7 @@ public record IdentityHubProperties(
         Duration interactionTtl,
         Registration registration,
         PasswordRecovery passwordRecovery,
+        LoginProtection loginProtection,
         Bootstrap bootstrap) {
 
     public record Registration(
@@ -19,6 +20,12 @@ public record IdentityHubProperties(
     }
 
     public record PasswordRecovery(Duration tokenTtl) {
+    }
+
+    public record LoginProtection(
+            int failureThreshold,
+            Duration initialLockDuration,
+            Duration maximumLockDuration) {
     }
 
     public record Bootstrap(
