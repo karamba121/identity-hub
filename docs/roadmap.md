@@ -139,7 +139,7 @@ cliente de um tenant não observam nem alteram recursos de outro.
 
 ## Fase 6 — Credenciais e proteção contra abuso `MVP`
 
-- [ ] cadastro e verificação de e-mail;
+- [x] cadastro e verificação de e-mail;
 - [ ] política de senha e hash resistente;
 - [ ] recuperação com token único, curto e armazenado de forma segura;
 - [ ] bloqueio progressivo por tentativas inválidas;

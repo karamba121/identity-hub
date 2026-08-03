@@ -9,7 +9,13 @@ public record IdentityHubProperties(
         String issuer,
         String uiBaseUrl,
         Duration interactionTtl,
+        Registration registration,
         Bootstrap bootstrap) {
+
+    public record Registration(
+            Duration verificationTtl,
+            String mailFrom) {
+    }
 
     public record Bootstrap(
             boolean enabled,

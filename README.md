@@ -18,7 +18,7 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** quinze fatias verticais executáveis. O repositório contém
+> **Estado atual:** dezesseis fatias verticais executáveis. O repositório contém
 > Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
 > persistência PostgreSQL, tokens OIDC, um cliente público demonstrativo e uma
 > API protegida por issuer, audience e escopo. A terceira fatia acrescenta
@@ -48,7 +48,10 @@ context em um microsserviço artificial.
 > concluídas, negadas ou falhas e oferece consulta paginada e tenant-aware. A
 > décima quinta fatia consolida uma suíte negativa de isolamento horizontal
 > para contexto de usuário, administração, clientes OAuth, memberships e
-> auditoria, incluindo tentativas de aliasing por identificador estrangeiro. O
+> auditoria, incluindo tentativas de aliasing por identificador estrangeiro. A
+> décima sexta fatia entrega cadastro público e confirmação de e-mail por link
+> de uso único, com token persistido somente como hash, envio SMTP configurável
+> e bloqueio de login enquanto a conta estiver pendente. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 
@@ -298,6 +301,8 @@ A trilha de auditoria administrativa está registrada em
 [`docs/vertical-slices/014-administrative-security-audit.md`](docs/vertical-slices/014-administrative-security-audit.md).
 A matriz negativa de isolamento horizontal está documentada em
 [`docs/vertical-slices/015-tenant-horizontal-isolation.md`](docs/vertical-slices/015-tenant-horizontal-isolation.md).
+O cadastro e a confirmação de e-mail estão documentados em
+[`docs/vertical-slices/016-email-registration-and-verification.md`](docs/vertical-slices/016-email-registration-and-verification.md).
 
 CQRS será usado apenas onde modelos de leitura e escrita tiverem necessidades
 materialmente diferentes. Eventos de domínio não serão usados como sinônimo de

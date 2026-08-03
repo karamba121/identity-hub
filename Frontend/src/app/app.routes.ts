@@ -8,6 +8,7 @@ import { ResetPasswordComponent } from './pages/auth-pages/reset-password/reset-
 import { SignInComponent } from './pages/auth-pages/sign-in/sign-in.component';
 import { SignUpComponent } from './pages/auth-pages/sign-up/sign-up.component';
 import { TwoStepVerificationComponent } from './pages/auth-pages/two-step-verification/two-step-verification.component';
+import { VerifyEmailComponent } from './pages/auth-pages/verify-email/verify-email.component';
 import { ConsentComponent } from './pages/auth-pages/consent/consent.component';
 import { OauthDemoComponent } from './pages/oauth-demo/oauth-demo.component';
 import { OAuthClientsAdminComponent } from './pages/admin/oauth-clients/oauth-clients-admin.component';
@@ -603,7 +604,12 @@ export const routes: Routes = [
   {
     path:'signup',
     component:SignUpComponent,
-    title:'Angular Sign Up Dashboard | TailAdmin - Angular Admin Dashboard Template'
+    title:'Criar conta | Identity Hub'
+  },
+  {
+    path:'verify-email',
+    component:VerifyEmailComponent,
+    title:'Confirmar e-mail | Identity Hub'
   },
   {
     path:'reset-password',

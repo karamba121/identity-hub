@@ -28,6 +28,9 @@ public class IdentityUser {
     @Column(nullable = false)
     private boolean enabled;
 
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -35,12 +38,22 @@ public class IdentityUser {
     }
 
     public IdentityUser(String email, String displayName, String passwordHash) {
+        this(email, displayName, passwordHash, true);
+    }
+
+    private IdentityUser(String email, String displayName, String passwordHash, boolean emailVerified) {
         this.id = UUID.randomUUID().toString();
         this.email = normalizeEmail(email);
         this.displayName = displayName;
         this.passwordHash = passwordHash;
         this.enabled = true;
+        this.emailVerified = emailVerified;
         this.createdAt = Instant.now();
+    }
+
+    public static IdentityUser pendingEmailVerification(
+            String email, String displayName, String passwordHash) {
+        return new IdentityUser(email, displayName, passwordHash, false);
     }
 
     public String getId() {
@@ -61,6 +74,14 @@ public class IdentityUser {
 
     public boolean isEnabled() {
         return enabled;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public void verifyEmail() {
+        this.emailVerified = true;
     }
 
     private static String normalizeEmail(String email) {

@@ -162,6 +162,9 @@ public class SecurityConfig {
                         .requestMatchers("/error", "/actuator/health/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/interactions/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/interactions/*/login").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/registrations/csrf").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/registrations", "/api/v1/registrations/verify")
+                                .permitAll()
                         .anyRequest().authenticated())
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfRepository)
@@ -307,7 +310,7 @@ public class SecurityConfig {
                     .subject(user.getId())
                     .claim("name", user.getDisplayName())
                     .claim("email", user.getEmail())
-                    .claim("email_verified", true));
+                    .claim("email_verified", user.isEmailVerified()));
         };
     }
 

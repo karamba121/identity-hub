@@ -24,7 +24,7 @@ public class IdentityUserDetailsService implements UserDetailsService {
         return User.withUsername(user.getEmail())
                 .password(user.getPasswordHash())
                 .authorities(new SimpleGrantedAuthority("ROLE_USER"))
-                .disabled(!user.isEnabled())
+                .disabled(!user.isEnabled() || !user.isEmailVerified())
                 .build();
     }
 }
