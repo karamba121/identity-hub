@@ -20,6 +20,7 @@
       </div>
     }
 
+    @if (!awaitingMfa) {
     <form (ngSubmit)="onSignIn()" class="space-y-6">
       <div>
         <app-label>E-mail <span class="text-error-500">*</span></app-label>
@@ -63,6 +64,30 @@
         {{ loading ? 'Entrando…' : 'Entrar' }}
       </button>
     </form>
+    } @else {
+    <form (ngSubmit)="onVerifyMfa()" class="space-y-6">
+      <div>
+        <app-label>Código de segurança <span class="text-error-500">*</span></app-label>
+        <app-input-field
+          type="text"
+          placeholder="000000 ou código de recuperação"
+          [(value)]="mfaCode"
+          name="mfaCode"
+          [disabled]="loading"
+        />
+        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          Informe o código atual do aplicativo autenticador ou um código de recuperação ainda não utilizado.
+        </p>
+      </div>
+      <button
+        type="submit"
+        [disabled]="loading || !mfaCode"
+        class="inline-flex w-full items-center justify-center rounded-lg bg-brand-500 px-4 py-3 text-sm font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {{ loading ? 'Verificando…' : 'Verificar e continuar' }}
+      </button>
+    </form>
+    }
 
     <p class="mt-5 text-center text-xs text-gray-500 dark:text-gray-400">
       Sua senha é enviada somente ao Identity Hub e nunca é armazenada no navegador.

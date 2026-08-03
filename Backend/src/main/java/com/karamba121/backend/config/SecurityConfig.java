@@ -181,6 +181,7 @@ public class SecurityConfig {
                         .requestMatchers("/error", "/actuator/health/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/interactions/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/interactions/*/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/interactions/*/mfa").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/registrations/csrf").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/registrations", "/api/v1/registrations/verify")
                                 .permitAll()

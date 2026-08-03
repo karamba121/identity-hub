@@ -26,6 +26,8 @@ export class SigninFormComponent {
   interactionId = '';
   errorMessage = '';
   loading = false;
+  awaitingMfa = false;
+  mfaCode = '';
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -59,7 +61,15 @@ export class SigninFormComponent {
     this.loading = true;
     this.errorMessage = '';
     this.interactions.login(this.interactionId, this.email, this.password).subscribe({
-      next: result => window.location.assign(result.continueUrl),
+      next: result => {
+        if (result.mfaRequired) {
+          this.loading = false;
+          this.awaitingMfa = true;
+          this.password = '';
+          return;
+        }
+        if (result.continueUrl) window.location.assign(result.continueUrl);
+      },
       error: (error: HttpErrorResponse) => {
         this.loading = false;
         this.errorMessage = error.status === 429
@@ -67,6 +77,23 @@ export class SigninFormComponent {
           : error.status === 401
             ? 'E-mail ou senha inválidos.'
             : 'Não foi possível concluir o login. Reinicie a autorização.';
+      },
+    });
+  }
+
+  onVerifyMfa() {
+    if (!this.interactionId || !this.mfaCode || this.loading) return;
+    this.loading = true;
+    this.errorMessage = '';
+    this.interactions.verifyMfa(this.interactionId, this.mfaCode).subscribe({
+      next: result => {
+        if (result.continueUrl) window.location.assign(result.continueUrl);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.loading = false;
+        this.errorMessage = error.status === 429
+          ? (error.error?.detail ?? 'Muitas tentativas. Aguarde antes de tentar novamente.')
+          : 'Código do autenticador ou de recuperação inválido.';
       },
     });
   }

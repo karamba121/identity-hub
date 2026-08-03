@@ -9,8 +9,9 @@ export interface InteractionView {
   expiresAt: string;
 }
 
-interface ContinueResult {
-  continueUrl: string;
+export interface LoginResult {
+  continueUrl: string | null;
+  mfaRequired: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -21,15 +22,22 @@ export class InteractionApiService {
     return this.http.get<InteractionView>(`/api/v1/interactions/${encodeURIComponent(interactionId)}`);
   }
 
-  login(interactionId: string, email: string, password: string): Observable<ContinueResult> {
-    return this.http.post<ContinueResult>(
+  login(interactionId: string, email: string, password: string): Observable<LoginResult> {
+    return this.http.post<LoginResult>(
       `/api/v1/interactions/${encodeURIComponent(interactionId)}/login`,
       { email, password },
     );
   }
 
-  consent(interactionId: string, approved: boolean): Observable<ContinueResult> {
-    return this.http.post<ContinueResult>(
+  verifyMfa(interactionId: string, code: string): Observable<LoginResult> {
+    return this.http.post<LoginResult>(
+      `/api/v1/interactions/${encodeURIComponent(interactionId)}/mfa`,
+      { code },
+    );
+  }
+
+  consent(interactionId: string, approved: boolean): Observable<{ continueUrl: string }> {
+    return this.http.post<{ continueUrl: string }>(
       `/api/v1/interactions/${encodeURIComponent(interactionId)}/consent`,
       { approved },
     );

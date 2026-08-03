@@ -2,6 +2,8 @@ package com.karamba121.backend.features.interaction;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 
@@ -33,6 +35,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.karamba121.backend.features.abuse.RateLimitService;
 import com.karamba121.backend.features.abuse.RateLimitedOperation;
+import com.karamba121.backend.features.identity.MfaService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -41,6 +44,10 @@ import jakarta.servlet.http.HttpServletResponse;
 @RequestMapping("/api/v1/interactions")
 public class InteractionController {
 
+    private static final String PENDING_MFA_AUTHENTICATION = "identity-hub.pending-mfa.authentication";
+    private static final String PENDING_MFA_INTERACTION = "identity-hub.pending-mfa.interaction";
+    private static final String PENDING_MFA_CREATED_AT = "identity-hub.pending-mfa.created-at";
+
     private final SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder
             .getContextHolderStrategy();
     private final AuthorizationInteractionService interactions;
@@ -48,18 +55,21 @@ public class InteractionController {
     private final SecurityContextRepository securityContextRepository;
     private final RateLimitService rateLimits;
     private final SessionAuthenticationStrategy sessionStrategy;
+    private final MfaService mfa;
 
     public InteractionController(
             AuthorizationInteractionService interactions,
             AuthenticationManager authenticationManager,
             SecurityContextRepository securityContextRepository,
             RateLimitService rateLimits,
-            SessionAuthenticationStrategy sessionStrategy) {
+            SessionAuthenticationStrategy sessionStrategy,
+            MfaService mfa) {
         this.interactions = interactions;
         this.authenticationManager = authenticationManager;
         this.securityContextRepository = securityContextRepository;
         this.rateLimits = rateLimits;
         this.sessionStrategy = sessionStrategy;
+        this.mfa = mfa;
     }
 
     @GetMapping("/{interactionId}")
@@ -105,16 +115,68 @@ public class InteractionController {
             Authentication authentication = authenticationManager.authenticate(
                     UsernamePasswordAuthenticationToken.unauthenticated(
                             body.email().trim().toLowerCase(), body.password()));
-            sessionStrategy.onAuthentication(authentication, request, response);
-            SecurityContext context = securityContextHolderStrategy.createEmptyContext();
-            context.setAuthentication(authentication);
-            securityContextHolderStrategy.setContext(context);
-            securityContextRepository.saveContext(context, request, response);
-            interactions.completeLogin(interaction, request.getSession(false).getId());
-            return new LoginResult(interaction.getResumeUri());
+            if (mfa.isEnabled(authentication.getName())) {
+                request.getSession(true).setAttribute(PENDING_MFA_AUTHENTICATION, authentication);
+                request.getSession(false).setAttribute(PENDING_MFA_INTERACTION, interactionId);
+                request.getSession(false).setAttribute(PENDING_MFA_CREATED_AT, Instant.now());
+                return new LoginResult(null, true);
+            }
+            completeAuthentication(authentication, interaction, request, response);
+            return new LoginResult(interaction.getResumeUri(), false);
         } catch (AuthenticationException exception) {
             throw new InteractionException(HttpStatus.UNAUTHORIZED, "Credenciais inválidas");
         }
+    }
+
+    @PostMapping("/{interactionId}/mfa")
+    @ResponseBody
+    public LoginResult verifyMfa(
+            @PathVariable String interactionId,
+            @RequestBody MfaRequest body,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+        AuthorizationInteraction interaction = interactions.resolvePending(
+                interactionId, request, InteractionType.LOGIN);
+        Object pending = request.getSession(false) == null ? null
+                : request.getSession(false).getAttribute(PENDING_MFA_AUTHENTICATION);
+        Object pendingInteraction = request.getSession(false) == null ? null
+                : request.getSession(false).getAttribute(PENDING_MFA_INTERACTION);
+        Object createdAt = request.getSession(false) == null ? null
+                : request.getSession(false).getAttribute(PENDING_MFA_CREATED_AT);
+        if (!(pending instanceof Authentication authentication)
+                || !interactionId.equals(pendingInteraction)
+                || !(createdAt instanceof Instant startedAt)
+                || startedAt.plus(Duration.ofMinutes(5)).isBefore(Instant.now())) {
+            clearPendingMfa(request);
+            throw new InteractionException(HttpStatus.UNAUTHORIZED, "Desafio MFA inválido ou expirado");
+        }
+        rateLimits.check(RateLimitedOperation.LOGIN, request, authentication.getName());
+        if (body == null || !mfa.verifyChallenge(authentication.getName(), body.code())) {
+            throw new InteractionException(HttpStatus.UNAUTHORIZED, "Código MFA inválido");
+        }
+        clearPendingMfa(request);
+        completeAuthentication(authentication, interaction, request, response);
+        return new LoginResult(interaction.getResumeUri(), false);
+    }
+
+    private void completeAuthentication(
+            Authentication authentication,
+            AuthorizationInteraction interaction,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+        sessionStrategy.onAuthentication(authentication, request, response);
+        SecurityContext context = securityContextHolderStrategy.createEmptyContext();
+        context.setAuthentication(authentication);
+        securityContextHolderStrategy.setContext(context);
+        securityContextRepository.saveContext(context, request, response);
+        interactions.completeLogin(interaction, request.getSession(false).getId());
+    }
+
+    private static void clearPendingMfa(HttpServletRequest request) {
+        if (request.getSession(false) == null) return;
+        request.getSession(false).removeAttribute(PENDING_MFA_AUTHENTICATION);
+        request.getSession(false).removeAttribute(PENDING_MFA_INTERACTION);
+        request.getSession(false).removeAttribute(PENDING_MFA_CREATED_AT);
     }
 
     @PostMapping("/{interactionId}/consent")
@@ -185,8 +247,10 @@ public class InteractionController {
     public record LoginRequest(String email, String password) {
     }
 
-    public record LoginResult(String continueUrl) {
+    public record LoginResult(String continueUrl, boolean mfaRequired) {
     }
+
+    public record MfaRequest(String code) { }
 
     public record ConsentRequest(boolean approved) {
     }

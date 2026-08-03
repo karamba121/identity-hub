@@ -31,6 +31,7 @@ declare qual registro foi substituído.
 | [011](011-progressive-login-lockout.md) | Bloqueio progressivo de login | Aceito |
 | [012](012-combined-signal-rate-limiting.md) | Rate limiting por sinais combinados | Aceito |
 | [013](013-critical-session-invalidation.md) | Invalidação após eventos críticos de credencial | Aceito |
+| [014](014-totp-mfa-and-recovery-codes.md) | MFA TOTP e códigos de recuperação | Aceito |
 
 ## Template
 

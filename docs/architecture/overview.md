@@ -389,6 +389,9 @@ respondeu.
 
 Operações sensíveis usam concorrência otimista ou locks transacionais conforme
 o invariante. Rotação de refresh token e consumo de código exigem atomicidade.
+Segredos TOTP são cifrados com AES-256-GCM por chave externa ao banco; códigos
+de recuperação permanecem somente como hash e cada janela TOTP aceita é
+registrada sob lock para impedir replay concorrente.
 O bootstrap administrativo adquire um lock pessimista persistido antes de
 consultar ou criar usuário, tenant, papel e membership, serializando instâncias
 concorrentes. O lock registra o usuário e tenant iniciais; execuções seguintes
