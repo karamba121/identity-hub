@@ -15,6 +15,9 @@ import org.springframework.security.oauth2.server.authorization.settings.TokenSe
 import org.springframework.stereotype.Component;
 import com.karamba121.backend.features.access.FirstAdministratorBootstrapService;
 import com.karamba121.backend.features.access.AdminResourceContract;
+import com.karamba121.backend.features.access.TenantOAuthClient;
+import com.karamba121.backend.features.access.TenantOAuthClientRepository;
+import com.karamba121.backend.features.tenancy.TenantRepository;
 
 @Component
 public class DevelopmentBootstrap implements ApplicationRunner {
@@ -22,14 +25,20 @@ public class DevelopmentBootstrap implements ApplicationRunner {
     private final IdentityHubProperties properties;
     private final RegisteredClientRepository clients;
     private final FirstAdministratorBootstrapService firstAdministratorBootstrap;
+    private final TenantOAuthClientRepository clientOwnerships;
+    private final TenantRepository tenants;
 
     public DevelopmentBootstrap(
             IdentityHubProperties properties,
             RegisteredClientRepository clients,
-            FirstAdministratorBootstrapService firstAdministratorBootstrap) {
+            FirstAdministratorBootstrapService firstAdministratorBootstrap,
+            TenantOAuthClientRepository clientOwnerships,
+            TenantRepository tenants) {
         this.properties = properties;
         this.clients = clients;
         this.firstAdministratorBootstrap = firstAdministratorBootstrap;
+        this.clientOwnerships = clientOwnerships;
+        this.tenants = tenants;
     }
 
     @Override
@@ -45,8 +54,9 @@ public class DevelopmentBootstrap implements ApplicationRunner {
 
         firstAdministratorBootstrap.provision(bootstrap);
 
+        RegisteredClient managedClient;
         if (existingClient == null) {
-            RegisteredClient client = RegisteredClient.withId(UUID.randomUUID().toString())
+            managedClient = RegisteredClient.withId(UUID.randomUUID().toString())
                     .clientId(bootstrap.clientId())
                     .clientName(bootstrap.clientName())
                     .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
@@ -70,10 +80,11 @@ public class DevelopmentBootstrap implements ApplicationRunner {
                             .reuseRefreshTokens(false)
                             .build())
                     .build();
-            clients.save(client);
         } else {
-            clients.save(configureClientSecurity(existingClient));
+            managedClient = configureClientSecurity(existingClient);
         }
+        clients.save(managedClient);
+        linkClientToBootstrapTenant(managedClient, bootstrap);
     }
 
     private RegisteredClient configureClientSecurity(RegisteredClient existingClient) {
@@ -89,5 +100,15 @@ public class DevelopmentBootstrap implements ApplicationRunner {
                         .reuseRefreshTokens(false)
                         .build())
                 .build();
+    }
+
+    private void linkClientToBootstrapTenant(
+            RegisteredClient client,
+            IdentityHubProperties.Bootstrap bootstrap) {
+        if (clientOwnerships.existsById(client.getId())) {
+            return;
+        }
+        tenants.findBySlugIgnoreCase(bootstrap.tenantSlug()).ifPresent(tenant -> clientOwnerships.save(
+                new TenantOAuthClient(tenant, client.getId(), client.getClientId())));
     }
 }
