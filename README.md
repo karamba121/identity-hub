@@ -18,7 +18,7 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** vinte e seis fatias verticais executáveis. O repositório contém
+> **Estado atual:** vinte e sete fatias verticais executáveis. O repositório contém
 > Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
 > persistência PostgreSQL, tokens OIDC, um cliente público demonstrativo e uma
 > API protegida por issuer, audience e escopo. A terceira fatia acrescenta
@@ -73,7 +73,9 @@ context em um microsserviço artificial.
 > criação e persistido como Argon2id, além do grant Client Credentials com
 > sujeito de máquina, audience e escopo mínimo. O vigésimo sexto publica um
 > resource server Spring Boot independente que valida assinatura pelo JWK Set,
-> issuer, audience e escopo e pode ser executado no Compose. O
+> issuer, audience e escopo e pode ser executado no Compose. O vigésimo sétimo
+> permite rotacionar client secrets com janela controlada para o segredo
+> anterior, mantendo apenas hashes Argon2id e auditando a operação. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 

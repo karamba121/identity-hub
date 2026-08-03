@@ -22,6 +22,7 @@ export interface OAuthClientView {
   pkceRequired: boolean;
   createdAt: string;
   clientSecret?: string;
+  previousSecretExpiresAt?: string;
 }
 
 export interface OAuthClientCommand {
@@ -89,6 +90,18 @@ export class OAuthClientAdminApiService {
   remove(tenantId: string, clientId: string): Promise<void> {
     return firstValueFrom(this.http.delete<void>(
       `${this.baseUrl(tenantId)}/${encodeURIComponent(clientId)}`,
+      { headers: this.session.authorizationHeaders() },
+    ));
+  }
+
+  rotateSecret(
+    tenantId: string,
+    clientId: string,
+    previousSecretValidForMinutes: number,
+  ): Promise<OAuthClientView> {
+    return firstValueFrom(this.http.post<OAuthClientView>(
+      `${this.baseUrl(tenantId)}/${encodeURIComponent(clientId)}/rotate-secret`,
+      { previousSecretValidForMinutes },
       { headers: this.session.authorizationHeaders() },
     ));
   }

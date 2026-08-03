@@ -170,6 +170,48 @@ export class OAuthClientsAdminComponent implements OnInit {
     }
   }
 
+  async rotateSecret(client: OAuthClientView): Promise<void> {
+    if (!this.selectedTenantId || !this.canManage || client.clientType !== 'CONFIDENTIAL') {
+      return;
+    }
+    const answer = window.prompt(
+      'Por quantos minutos o secret anterior deve continuar válido? Informe de 0 a 1440.',
+      '15',
+    );
+    if (answer === null) {
+      return;
+    }
+    const validityMinutes = Number(answer);
+    if (!Number.isInteger(validityMinutes) || validityMinutes < 0 || validityMinutes > 1440) {
+      this.errorMessage = 'A janela do secret anterior deve ser um número inteiro entre 0 e 1440 minutos.';
+      return;
+    }
+    if (!window.confirm(
+      `Rotacionar o secret de ${client.clientName}? O valor atual continuará válido por ${validityMinutes} minuto(s).`,
+    )) {
+      return;
+    }
+    this.loading = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+    this.createdSecret = '';
+    try {
+      const rotated = await this.api.rotateSecret(this.selectedTenantId, client.clientId, validityMinutes);
+      this.createdSecret = rotated.clientSecret ?? '';
+      this.successMessage = 'Client secret rotacionado. Copie o novo valor antes de continuar.';
+      await Promise.all([this.loadClients(false), this.loadAudit(false)]);
+    } catch (error) {
+      this.errorMessage = this.describeError(error, 'Não foi possível rotacionar o client secret.');
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  previousSecretWindowActive(client: OAuthClientView): boolean {
+    return !!client.previousSecretExpiresAt
+      && new Date(client.previousSecretExpiresAt).getTime() > Date.now();
+  }
+
   get selectedTenant(): AdminTenantContext | undefined {
     return this.tenants.find(tenant => tenant.tenantId === this.selectedTenantId);
   }
@@ -281,6 +323,7 @@ export class OAuthClientsAdminComponent implements OnInit {
       OAUTH_CLIENT_CREATED: 'Cliente OAuth criado',
       OAUTH_CLIENT_UPDATED: 'Cliente OAuth atualizado',
       OAUTH_CLIENT_DELETED: 'Cliente OAuth removido',
+      OAUTH_CLIENT_SECRET_ROTATED: 'Client secret rotacionado',
       TENANT_MEMBERSHIP_ROLE_ASSIGNED: 'Papel de membership atribuído',
       TENANT_MEMBERSHIP_SUSPENDED: 'Membership suspensa',
       TENANT_MEMBERSHIP_REMOVED: 'Membership removida',

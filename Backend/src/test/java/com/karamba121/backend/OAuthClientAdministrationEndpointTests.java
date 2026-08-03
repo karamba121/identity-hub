@@ -33,6 +33,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.karamba121.backend.features.access.AdminResourceContract;
@@ -243,6 +244,86 @@ class OAuthClientAdministrationEndpointTests {
                         .param("scope", "demo.read"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").value("invalid_client"));
+    }
+
+    @Test
+    void rotatesConfidentialSecretWithControlledPreviousSecretWindow() throws Exception {
+        Tenant tenant = tenant("oauth-rotation");
+        TenantMembership actor = actor(
+                tenant, "oauth-rotation-admin", PermissionCode.OAUTH_CLIENTS_READ,
+                PermissionCode.OAUTH_CLIENTS_MANAGE, PermissionCode.SECURITY_AUDIT_READ);
+        String clientId = "rotation-" + shortSuffix();
+        MvcResult creation = mockMvc.perform(post(baseUrl(tenant))
+                        .header("Authorization", bearer(actor))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(confidentialPayload(clientId)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String originalSecret = JsonPath.read(creation.getResponse().getContentAsString(), "$.clientSecret");
+
+        MvcResult rotation = mockMvc.perform(post(baseUrl(tenant) + "/" + clientId + "/rotate-secret")
+                        .header("Authorization", bearer(actor))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"previousSecretValidForMinutes\":30}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.clientSecret").isNotEmpty())
+                .andExpect(jsonPath("$.previousSecretExpiresAt").isNotEmpty())
+                .andReturn();
+        String newSecret = JsonPath.read(rotation.getResponse().getContentAsString(), "$.clientSecret");
+
+        RegisteredClient registered = clients.findByClientId(clientId);
+        assertThat(registered.getClientSecret()).startsWith("{rotating}")
+                .doesNotContain(originalSecret, newSecret);
+        assertThat(passwordEncoder.matches(originalSecret, registered.getClientSecret())).isTrue();
+        assertThat(passwordEncoder.matches(newSecret, registered.getClientSecret())).isTrue();
+
+        requestClientCredentialsToken(clientId, originalSecret).andExpect(status().isOk());
+        requestClientCredentialsToken(clientId, newSecret).andExpect(status().isOk());
+
+        mockMvc.perform(get(baseUrl(tenant) + "/" + clientId)
+                        .header("Authorization", bearer(actor)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.clientSecret").doesNotExist())
+                .andExpect(jsonPath("$.previousSecretExpiresAt").isNotEmpty());
+        mockMvc.perform(get(auditUrl(tenant))
+                        .header("Authorization", bearer(actor)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].eventType").value("OAUTH_CLIENT_SECRET_ROTATED"))
+                .andExpect(jsonPath("$.items[0].targetId").value(clientId));
+    }
+
+    @Test
+    void rejectsSecretRotationForPublicClientAndInvalidWindow() throws Exception {
+        Tenant tenant = tenant("oauth-invalid-rotation");
+        TenantMembership actor = actor(
+                tenant, "oauth-invalid-rotation-admin", PermissionCode.OAUTH_CLIENTS_MANAGE);
+        String publicClientId = "public-rotation-" + shortSuffix();
+        mockMvc.perform(post(baseUrl(tenant))
+                        .header("Authorization", bearer(actor))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createPayload(
+                                publicClientId,
+                                "Portal público",
+                                "https://rotation.example.test/callback",
+                                "https://rotation.example.test/logout")))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post(baseUrl(tenant) + "/" + publicClientId + "/rotate-secret")
+                        .header("Authorization", bearer(actor))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"previousSecretValidForMinutes\":15}"))
+                .andExpect(status().isBadRequest());
+
+        String confidentialClientId = "confidential-rotation-" + shortSuffix();
+        mockMvc.perform(post(baseUrl(tenant))
+                        .header("Authorization", bearer(actor))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(confidentialPayload(confidentialClientId)))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post(baseUrl(tenant) + "/" + confidentialClientId + "/rotate-secret")
+                        .header("Authorization", bearer(actor))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"previousSecretValidForMinutes\":1441}"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -477,6 +558,16 @@ class OAuthClientAdministrationEndpointTests {
                 ) values (?, ?, ?, ?)
                 """, "b".repeat(64), authorizationId, "CURRENT", now);
         return authorizationId;
+    }
+
+    private ResultActions requestClientCredentialsToken(String clientId, String clientSecret) throws Exception {
+        String basic = Base64.getEncoder().encodeToString(
+                (clientId + ":" + clientSecret).getBytes(StandardCharsets.UTF_8));
+        return mockMvc.perform(post("/oauth2/token")
+                .header(HttpHeaders.AUTHORIZATION, "Basic " + basic)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .param("grant_type", "client_credentials")
+                .param("scope", "demo.read"));
     }
 
     private int count(String table, String column, String value) {

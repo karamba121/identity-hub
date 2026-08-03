@@ -120,9 +120,18 @@
                         <p class="mt-3 break-all text-xs text-gray-500">{{ client.redirectUris[0] }}</p>
                       }
                       <p class="mt-2 text-xs text-gray-400">Criado em {{ client.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
+                      @if (client.previousSecretExpiresAt) {
+                        <p class="mt-2 text-xs" [class.text-warning-600]="previousSecretWindowActive(client)" [class.text-gray-400]="!previousSecretWindowActive(client)">
+                          {{ previousSecretWindowActive(client) ? 'Secret anterior válido até' : 'Janela do secret anterior encerrada em' }}
+                          {{ client.previousSecretExpiresAt | date:'dd/MM/yyyy HH:mm:ss' }}
+                        </p>
+                      }
                     </div>
                     @if (canManage) {
                       <div class="flex shrink-0 gap-2">
+                        @if (client.clientType === 'CONFIDENTIAL') {
+                          <button type="button" (click)="rotateSecret(client)" class="rounded-lg border border-warning-300 px-3 py-2 text-xs font-medium text-warning-700 hover:bg-warning-50 dark:border-warning-800 dark:text-warning-300">Rotacionar secret</button>
+                        }
                         <button type="button" (click)="edit(client)" class="rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300">Editar</button>
                         <button type="button" (click)="remove(client)" class="rounded-lg border border-error-200 px-3 py-2 text-xs font-medium text-error-600 hover:bg-error-50 dark:border-error-900/50 dark:text-error-400">Remover</button>
                       </div>

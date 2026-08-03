@@ -8,7 +8,7 @@ mantém relações de acesso por tenant e emite credenciais verificáveis para
 resource servers.
 
 O repositório contém um backend Spring Boot 4.0.7/Java 17 e um frontend Angular
-21 baseado no TailAdmin. As vinte e seis primeiras fatias verticais implementam
+21 baseado no TailAdmin. As vinte e sete primeiras fatias verticais implementam
 Authorization Code com PKCE, login e consentimento por interação opaca,
 persistência PostgreSQL, metadata, JWK Set, ID token, access token, UserInfo e
 uma API protegida por issuer, audience e escopo. Refresh tokens opacos são
@@ -358,6 +358,13 @@ adequada e escopos previamente concedidos, podem usar esse grant.
 O exemplo em `examples/resource-server` representa um processo separado e não
 compartilha persistência com o Authorization Server. Ele obtém as chaves pelo
 JWK Set, valida assinatura, issuer e audience e aplica o escopo na borda HTTP.
+
+A rotação de client secret conserva somente o hash atual e o hash imediatamente
+anterior em um envelope versionado, junto ao término da janela de transição. O
+segredo anterior deixa de autenticar no instante de expiração; uma nova rotação
+descarta qualquer geração mais antiga. A linha de ownership do cliente é
+bloqueada durante a troca para que rotações administrativas concorrentes não
+produzam um segredo devolvido ao operador, mas imediatamente inutilizável.
 
 ## Multi-tenancy
 

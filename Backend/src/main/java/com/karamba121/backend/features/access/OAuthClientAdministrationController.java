@@ -113,6 +113,25 @@ public class OAuthClientAdministrationController {
                 });
     }
 
+    @PostMapping("/{clientId}/rotate-secret")
+    OAuthClientView rotateSecret(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String tenantId,
+            @PathVariable String clientId,
+            @RequestBody(required = false) RotateClientSecretRequest request) {
+        return auditor.execute(
+                jwt.getSubject(),
+                tenantId,
+                PermissionCode.OAUTH_CLIENTS_MANAGE,
+                SecurityAuditEventType.OAUTH_CLIENT_SECRET_ROTATED,
+                "OAUTH_CLIENT",
+                clientId,
+                () -> administration.rotateSecret(
+                        tenantId,
+                        clientId,
+                        request == null ? null : request.previousSecretValidForMinutes()));
+    }
+
     @ExceptionHandler(OAuthClientAdministrationException.class)
     ResponseEntity<ProblemDetail> administrationError(OAuthClientAdministrationException exception) {
         HttpStatus status = exception.isConflict() ? HttpStatus.CONFLICT : HttpStatus.NOT_FOUND;
@@ -152,5 +171,8 @@ public class OAuthClientAdministrationController {
             return new OAuthClientCommand(
                     null, clientName, redirectUris, postLogoutRedirectUris, scopes, null);
         }
+    }
+
+    record RotateClientSecretRequest(Integer previousSecretValidForMinutes) {
     }
 }

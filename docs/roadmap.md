@@ -161,7 +161,7 @@ testes demonstram expiração, uso único e revogação das credenciais temporá
 - [x] criar resource server demonstrativo, inicialmente exercitado pelo cliente
   público e reutilizável na futura fatia de Client Credentials;
 - [x] publicar exemplo de validação de issuer, audience, assinatura e escopos;
-- [ ] definir rotação de client secrets com janela controlada;
+- [x] definir rotação de client secrets com janela controlada;
 - [ ] testar segredo inválido, escopo excessivo e confusão de audience.
 
 **Critério de aceite:** cliente público não consegue usar Client Credentials e

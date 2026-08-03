@@ -76,6 +76,7 @@ import com.karamba121.backend.features.identity.IdentityUserRepository;
 import com.karamba121.backend.features.identity.LoginAttemptService;
 import com.karamba121.backend.features.identity.LoginProtectionAuthenticationProvider;
 import com.karamba121.backend.features.identity.NormalizingPasswordEncoder;
+import com.karamba121.backend.features.access.RotatingClientSecretPasswordEncoder;
 import com.karamba121.backend.features.access.AdminResourceContract;
 import com.karamba121.backend.features.interaction.LoginInteractionEntryPoint;
 import com.karamba121.backend.features.resource.DemoResourceContract;
@@ -232,14 +233,16 @@ public class SecurityConfig {
     }
 
     @Bean
-    PasswordEncoder passwordEncoder() {
+    RotatingClientSecretPasswordEncoder passwordEncoder() {
         Argon2PasswordEncoder argon2 = new Argon2PasswordEncoder(16, 32, 1, 19_456, 2);
         BCryptPasswordEncoder bcrypt = new BCryptPasswordEncoder(12);
         DelegatingPasswordEncoder delegate = new DelegatingPasswordEncoder(
                 "argon2id",
                 java.util.Map.of("argon2id", argon2, "bcrypt", bcrypt));
         delegate.setDefaultPasswordEncoderForMatches(bcrypt);
-        return new NormalizingPasswordEncoder(delegate);
+        return new RotatingClientSecretPasswordEncoder(
+                new NormalizingPasswordEncoder(delegate),
+                java.time.Clock.systemUTC());
     }
 
     @Bean

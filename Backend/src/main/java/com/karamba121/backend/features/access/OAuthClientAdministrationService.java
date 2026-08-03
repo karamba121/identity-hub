@@ -20,7 +20,6 @@ import org.springframework.security.oauth2.server.authorization.client.Registere
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,14 +43,14 @@ public class OAuthClientAdministrationService {
     private final TenantOAuthClientRepository ownerships;
     private final TenantRepository tenants;
     private final JdbcOperations jdbc;
-    private final PasswordEncoder passwordEncoder;
+    private final RotatingClientSecretPasswordEncoder passwordEncoder;
 
     public OAuthClientAdministrationService(
             RegisteredClientRepository clients,
             TenantOAuthClientRepository ownerships,
             TenantRepository tenants,
             JdbcOperations jdbc,
-            PasswordEncoder passwordEncoder) {
+            RotatingClientSecretPasswordEncoder passwordEncoder) {
         this.clients = clients;
         this.ownerships = ownerships;
         this.tenants = tenants;
@@ -132,6 +131,30 @@ public class OAuthClientAdministrationService {
     }
 
     @Transactional
+    public OAuthClientView rotateSecret(String tenantId, String clientId, Integer previousSecretValidForMinutes) {
+        TenantOAuthClient ownership = ownerships.findForSecretRotation(tenantId, clientId)
+                .orElseThrow(OAuthClientAdministrationException::notFound);
+        RegisteredClient existing = registeredClient(ownership);
+        if (clientType(existing) != ClientType.CONFIDENTIAL || existing.getClientSecret() == null) {
+            throw new IllegalArgumentException("Somente clientes confidenciais possuem secret para rotação");
+        }
+        int validityMinutes = previousSecretValidForMinutes == null ? 15 : previousSecretValidForMinutes;
+        if (validityMinutes < 0 || validityMinutes > 1_440) {
+            throw new IllegalArgumentException("Janela do secret anterior deve estar entre 0 e 1440 minutos");
+        }
+        String newSecret = generateClientSecret();
+        RotatingClientSecretPasswordEncoder.Rotation rotation = passwordEncoder.rotate(
+                newSecret,
+                existing.getClientSecret(),
+                Duration.ofMinutes(validityMinutes));
+        RegisteredClient updated = RegisteredClient.from(existing)
+                .clientSecret(rotation.encodedSecret())
+                .build();
+        clients.save(updated);
+        return view(ownership, updated, newSecret);
+    }
+
+    @Transactional
     public void delete(String tenantId, String clientId) {
         TenantOAuthClient ownership = ownership(tenantId, clientId);
         String registeredClientId = ownership.getRegisteredClientId();
@@ -176,11 +199,11 @@ public class OAuthClientAdministrationService {
         return view(ownership, registeredClient(ownership));
     }
 
-    private static OAuthClientView view(TenantOAuthClient ownership, RegisteredClient client) {
+    private OAuthClientView view(TenantOAuthClient ownership, RegisteredClient client) {
         return view(ownership, client, null);
     }
 
-    private static OAuthClientView view(
+    private OAuthClientView view(
             TenantOAuthClient ownership, RegisteredClient client, String clientSecret) {
         ClientType clientType = clientType(client);
         return new OAuthClientView(
@@ -192,7 +215,10 @@ public class OAuthClientAdministrationService {
                 clientType.name(),
                 clientType == ClientType.PUBLIC,
                 ownership.getCreatedAt(),
-                clientSecret);
+                clientSecret,
+                client.getClientSecret() == null
+                        ? null
+                        : passwordEncoder.previousSecretExpiresAt(client.getClientSecret()).orElse(null));
     }
 
     private static ValidatedClient validate(OAuthClientCommand command, boolean creating) {
@@ -363,7 +389,9 @@ public class OAuthClientAdministrationService {
             boolean pkceRequired,
             Instant createdAt,
             @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-            String clientSecret) {
+            String clientSecret,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+            Instant previousSecretExpiresAt) {
     }
 
     private record ValidatedClient(

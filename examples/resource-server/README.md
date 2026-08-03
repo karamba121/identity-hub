@@ -40,6 +40,9 @@ Invoke-RestMethod -Uri 'http://localhost:8081/api/v1/messages' `
 
 O segredo não deve ser salvo no repositório, em arquivos de configuração ou em
 logs. Em ambientes reais, forneça-o ao consumidor por um cofre de segredos.
+Quando o segredo for rotacionado na área administrativa, atualize o cofre e os
+consumidores dentro da janela escolhida; apenas o segredo atual e o imediatamente
+anterior podem autenticar durante essa transição.
 
 ## Configuração
 
