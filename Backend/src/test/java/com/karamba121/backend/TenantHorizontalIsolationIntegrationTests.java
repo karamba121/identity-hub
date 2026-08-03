@@ -238,7 +238,8 @@ class TenantHorizontalIsolationIntegrationTests {
                         "Cliente " + label,
                         Set.of("https://" + label + ".example.test/callback"),
                         Set.of("https://" + label + ".example.test/logout"),
-                        Set.of("openid", "profile")))
+                        Set.of("openid", "profile"),
+                        "PUBLIC"))
                 .clientId();
     }
 

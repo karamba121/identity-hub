@@ -11,6 +11,12 @@
       {{ successMessage }}
     </div>
   }
+  @if (createdSecret) {
+    <div class="rounded-xl border border-warning-300 bg-warning-50 px-4 py-4 text-sm text-warning-900 dark:border-warning-800 dark:bg-warning-950/30 dark:text-warning-100" role="status">
+      <p class="font-semibold">Copie o client secret agora. Ele não será exibido novamente.</p>
+      <code class="mt-3 block overflow-x-auto rounded-lg bg-white px-3 py-3 font-mono text-xs text-gray-900 dark:bg-gray-900 dark:text-white">{{ createdSecret }}</code>
+    </div>
+  }
 
   @if (!authenticated) {
     <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
@@ -90,7 +96,7 @@
           } @else if (clients.length === 0) {
             <div class="px-6 py-12 text-center">
               <p class="font-medium text-gray-800 dark:text-white">Nenhum cliente OAuth neste tenant</p>
-              <p class="mt-2 text-sm text-gray-500">Use o formulário ao lado para cadastrar o primeiro cliente público.</p>
+              <p class="mt-2 text-sm text-gray-500">Use o formulário ao lado para cadastrar o primeiro cliente.</p>
             </div>
           } @else {
             <div class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -100,7 +106,9 @@
                     <div class="min-w-0">
                       <div class="flex flex-wrap items-center gap-2">
                         <h3 class="truncate font-medium text-gray-900 dark:text-white">{{ client.clientName }}</h3>
-                        <span class="rounded-full bg-success-50 px-2.5 py-0.5 text-xs font-medium text-success-700 dark:bg-success-500/10 dark:text-success-400">Público · PKCE</span>
+                        <span class="rounded-full bg-success-50 px-2.5 py-0.5 text-xs font-medium text-success-700 dark:bg-success-500/10 dark:text-success-400">
+                          {{ client.clientType === 'PUBLIC' ? 'Público · PKCE' : 'Confidencial · Client Credentials' }}
+                        </span>
                       </div>
                       <p class="mt-1 font-mono text-xs text-gray-500 dark:text-gray-400">{{ client.clientId }}</p>
                       <div class="mt-3 flex flex-wrap gap-1.5">
@@ -108,7 +116,9 @@
                           <span class="rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">{{ scope }}</span>
                         }
                       </div>
-                      <p class="mt-3 break-all text-xs text-gray-500">{{ client.redirectUris[0] }}</p>
+                      @if (client.redirectUris[0]) {
+                        <p class="mt-3 break-all text-xs text-gray-500">{{ client.redirectUris[0] }}</p>
+                      }
                       <p class="mt-2 text-xs text-gray-400">Criado em {{ client.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
                     </div>
                     @if (canManage) {
@@ -127,8 +137,10 @@
         <section class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
           <div class="flex items-start justify-between gap-4">
             <div>
-              <h2 class="font-semibold text-gray-900 dark:text-white">{{ editingClientId ? 'Editar cliente' : 'Novo cliente público' }}</h2>
-              <p class="mt-1 text-sm text-gray-500">Somente Authorization Code com PKCE.</p>
+              <h2 class="font-semibold text-gray-900 dark:text-white">{{ editingClientId ? 'Editar cliente' : 'Novo cliente OAuth' }}</h2>
+              <p class="mt-1 text-sm text-gray-500">
+                {{ form.clientType === 'PUBLIC' ? 'Authorization Code com PKCE.' : 'Client Credentials para integração entre sistemas.' }}
+              </p>
             </div>
             @if (editingClientId) {
               <button type="button" (click)="resetForm()" class="text-sm font-medium text-brand-600 hover:text-brand-700">Cancelar</button>
@@ -142,6 +154,14 @@
           } @else {
             <form class="mt-6 space-y-5" (ngSubmit)="save()">
               <div>
+                <label for="clientType" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Tipo de cliente</label>
+                <select id="clientType" name="clientType" [(ngModel)]="form.clientType" (ngModelChange)="clientTypeChanged()" [disabled]="!!editingClientId"
+                  class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-hidden focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 disabled:bg-gray-100 dark:border-gray-700 dark:text-white dark:disabled:bg-gray-800">
+                  <option value="PUBLIC">Público — Authorization Code + PKCE</option>
+                  <option value="CONFIDENTIAL">Confidencial — Client Credentials</option>
+                </select>
+              </div>
+              <div>
                 <label for="clientId" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Client ID</label>
                 <input id="clientId" name="clientId" [(ngModel)]="form.clientId" [disabled]="!!editingClientId" required maxlength="100"
                   class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-hidden focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 disabled:bg-gray-100 dark:border-gray-700 dark:text-white dark:disabled:bg-gray-800" placeholder="portal-interno" />
@@ -151,16 +171,18 @@
                 <input id="clientName" name="clientName" [(ngModel)]="form.clientName" required maxlength="200"
                   class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-hidden focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:text-white" placeholder="Portal interno" />
               </div>
-              <div>
-                <label for="redirectUris" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Redirect URIs <span class="text-gray-400">(uma por linha)</span></label>
-                <textarea id="redirectUris" name="redirectUris" [(ngModel)]="form.redirectUris" required rows="3"
-                  class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-800 outline-hidden focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:text-white" placeholder="https://portal.example.com/callback"></textarea>
-              </div>
-              <div>
-                <label for="postLogoutRedirectUris" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Retornos pós-logout <span class="text-gray-400">(opcional)</span></label>
-                <textarea id="postLogoutRedirectUris" name="postLogoutRedirectUris" [(ngModel)]="form.postLogoutRedirectUris" rows="2"
-                  class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-800 outline-hidden focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:text-white" placeholder="https://portal.example.com/logout"></textarea>
-              </div>
+              @if (form.clientType === 'PUBLIC') {
+                <div>
+                  <label for="redirectUris" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Redirect URIs <span class="text-gray-400">(uma por linha)</span></label>
+                  <textarea id="redirectUris" name="redirectUris" [(ngModel)]="form.redirectUris" required rows="3"
+                    class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-800 outline-hidden focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:text-white" placeholder="https://portal.example.com/callback"></textarea>
+                </div>
+                <div>
+                  <label for="postLogoutRedirectUris" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Retornos pós-logout <span class="text-gray-400">(opcional)</span></label>
+                  <textarea id="postLogoutRedirectUris" name="postLogoutRedirectUris" [(ngModel)]="form.postLogoutRedirectUris" rows="2"
+                    class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-800 outline-hidden focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:text-white" placeholder="https://portal.example.com/logout"></textarea>
+                </div>
+              }
               <fieldset>
                 <legend class="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Escopos permitidos</legend>
                 <div class="grid grid-cols-2 gap-3">

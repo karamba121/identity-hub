@@ -1,8 +1,10 @@
 package com.karamba121.backend.features.access;
 
 import java.net.URI;
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -18,6 +20,7 @@ import org.springframework.security.oauth2.server.authorization.client.Registere
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,21 +37,26 @@ public class OAuthClientAdministrationService {
             OidcScopes.EMAIL,
             DemoResourceContract.SCOPE,
             AdminResourceContract.SCOPE);
+    private static final Set<String> CONFIDENTIAL_SCOPES = Set.of(DemoResourceContract.SCOPE);
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final RegisteredClientRepository clients;
     private final TenantOAuthClientRepository ownerships;
     private final TenantRepository tenants;
     private final JdbcOperations jdbc;
+    private final PasswordEncoder passwordEncoder;
 
     public OAuthClientAdministrationService(
             RegisteredClientRepository clients,
             TenantOAuthClientRepository ownerships,
             TenantRepository tenants,
-            JdbcOperations jdbc) {
+            JdbcOperations jdbc,
+            PasswordEncoder passwordEncoder) {
         this.clients = clients;
         this.ownerships = ownerships;
         this.tenants = tenants;
         this.jdbc = jdbc;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional(readOnly = true)
@@ -71,23 +79,32 @@ public class OAuthClientAdministrationService {
         }
         Tenant tenant = tenants.findById(tenantId)
                 .orElseThrow(OAuthClientAdministrationException::notFound);
-        RegisteredClient client = RegisteredClient.withId(UUID.randomUUID().toString())
+        String clientSecret = validated.clientType() == ClientType.CONFIDENTIAL ? generateClientSecret() : null;
+        RegisteredClient.Builder builder = RegisteredClient.withId(UUID.randomUUID().toString())
                 .clientId(validated.clientId())
                 .clientName(validated.clientName())
-                .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
-                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
                 .redirectUris(values -> values.addAll(validated.redirectUris()))
                 .postLogoutRedirectUris(values -> values.addAll(validated.postLogoutRedirectUris()))
-                .scopes(values -> values.addAll(validated.scopes()))
-                .clientSettings(publicClientSettings())
-                .tokenSettings(publicClientTokenSettings())
-                .build();
+                .scopes(values -> values.addAll(validated.scopes()));
+        if (validated.clientType() == ClientType.CONFIDENTIAL) {
+            builder.clientSecret(passwordEncoder.encode(clientSecret))
+                    .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                    .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+                    .clientSettings(confidentialClientSettings())
+                    .tokenSettings(confidentialClientTokenSettings());
+        } else {
+            builder.clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
+                    .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                    .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+                    .clientSettings(publicClientSettings())
+                    .tokenSettings(publicClientTokenSettings());
+        }
+        RegisteredClient client = builder.build();
         try {
             clients.save(client);
             TenantOAuthClient ownership = ownerships.save(new TenantOAuthClient(
                     tenant, client.getId(), client.getClientId()));
-            return view(ownership, client);
+            return view(ownership, client, clientSecret);
         } catch (DataIntegrityViolationException exception) {
             throw OAuthClientAdministrationException.conflict("Client ID já cadastrado");
         }
@@ -96,18 +113,22 @@ public class OAuthClientAdministrationService {
     @Transactional
     public OAuthClientView update(String tenantId, String clientId, OAuthClientCommand command) {
         TenantOAuthClient ownership = ownership(tenantId, clientId);
-        ValidatedClient validated = validate(command, false);
         RegisteredClient existing = registeredClient(ownership);
-        RegisteredClient updated = RegisteredClient.from(existing)
+        ClientType clientType = clientType(existing);
+        ValidatedClient validated = validate(command, false, clientType);
+        RegisteredClient.Builder builder = RegisteredClient.from(existing)
                 .clientName(validated.clientName())
                 .redirectUris(values -> replace(values, validated.redirectUris()))
                 .postLogoutRedirectUris(values -> replace(values, validated.postLogoutRedirectUris()))
-                .scopes(values -> replace(values, validated.scopes()))
-                .clientSettings(publicClientSettings())
-                .tokenSettings(publicClientTokenSettings())
-                .build();
+                .scopes(values -> replace(values, validated.scopes()));
+        if (clientType == ClientType.CONFIDENTIAL) {
+            builder.clientSettings(confidentialClientSettings()).tokenSettings(confidentialClientTokenSettings());
+        } else {
+            builder.clientSettings(publicClientSettings()).tokenSettings(publicClientTokenSettings());
+        }
+        RegisteredClient updated = builder.build();
         clients.save(updated);
-        return view(ownership, updated);
+        return view(ownership, updated, null);
     }
 
     @Transactional
@@ -156,18 +177,34 @@ public class OAuthClientAdministrationService {
     }
 
     private static OAuthClientView view(TenantOAuthClient ownership, RegisteredClient client) {
+        return view(ownership, client, null);
+    }
+
+    private static OAuthClientView view(
+            TenantOAuthClient ownership, RegisteredClient client, String clientSecret) {
+        ClientType clientType = clientType(client);
         return new OAuthClientView(
                 client.getClientId(),
                 client.getClientName(),
                 client.getRedirectUris().stream().sorted().toList(),
                 client.getPostLogoutRedirectUris().stream().sorted().toList(),
                 client.getScopes().stream().sorted().toList(),
-                "PUBLIC",
-                true,
-                ownership.getCreatedAt());
+                clientType.name(),
+                clientType == ClientType.PUBLIC,
+                ownership.getCreatedAt(),
+                clientSecret);
     }
 
     private static ValidatedClient validate(OAuthClientCommand command, boolean creating) {
+        if (command == null) {
+            throw new IllegalArgumentException("Dados do cliente são obrigatórios");
+        }
+        ClientType clientType = creating ? ClientType.parse(command.clientType()) : ClientType.PUBLIC;
+        return validate(command, creating, clientType);
+    }
+
+    private static ValidatedClient validate(
+            OAuthClientCommand command, boolean creating, ClientType clientType) {
         if (command == null) {
             throw new IllegalArgumentException("Dados do cliente são obrigatórios");
         }
@@ -176,11 +213,19 @@ public class OAuthClientAdministrationService {
             throw new IllegalArgumentException("Client ID inválido");
         }
         String clientName = required(command.clientName(), "Nome do cliente", 200);
-        Set<String> redirectUris = uris(command.redirectUris(), "Redirect URI", true);
+        Set<String> redirectUris = uris(command.redirectUris(), "Redirect URI", clientType == ClientType.PUBLIC);
         Set<String> postLogoutRedirectUris = uris(
                 command.postLogoutRedirectUris(), "Post logout redirect URI", false);
         Set<String> scopes = scopes(command.scopes());
-        return new ValidatedClient(clientId, clientName, redirectUris, postLogoutRedirectUris, scopes);
+        if (clientType == ClientType.CONFIDENTIAL) {
+            if (!redirectUris.isEmpty() || !postLogoutRedirectUris.isEmpty()) {
+                throw new IllegalArgumentException("Cliente confidencial de máquina não aceita redirect URIs");
+            }
+            if (!CONFIDENTIAL_SCOPES.containsAll(scopes)) {
+                throw new IllegalArgumentException("Cliente confidencial aceita somente escopos de máquina");
+            }
+        }
+        return new ValidatedClient(clientId, clientName, redirectUris, postLogoutRedirectUris, scopes, clientType);
     }
 
     private static Set<String> uris(Set<String> values, String field, boolean required) {
@@ -265,6 +310,31 @@ public class OAuthClientAdministrationService {
                 .build();
     }
 
+    private static ClientSettings confidentialClientSettings() {
+        return ClientSettings.builder()
+                .requireProofKey(false)
+                .requireAuthorizationConsent(false)
+                .build();
+    }
+
+    private static TokenSettings confidentialClientTokenSettings() {
+        return TokenSettings.builder()
+                .accessTokenTimeToLive(Duration.ofMinutes(5))
+                .build();
+    }
+
+    private static ClientType clientType(RegisteredClient client) {
+        return client.getAuthorizationGrantTypes().contains(AuthorizationGrantType.CLIENT_CREDENTIALS)
+                ? ClientType.CONFIDENTIAL
+                : ClientType.PUBLIC;
+    }
+
+    private static String generateClientSecret() {
+        byte[] value = new byte[32];
+        SECURE_RANDOM.nextBytes(value);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(value);
+    }
+
     private static TokenSettings publicClientTokenSettings() {
         return TokenSettings.builder()
                 .authorizationCodeTimeToLive(Duration.ofMinutes(2))
@@ -279,7 +349,8 @@ public class OAuthClientAdministrationService {
             String clientName,
             Set<String> redirectUris,
             Set<String> postLogoutRedirectUris,
-            Set<String> scopes) {
+            Set<String> scopes,
+            String clientType) {
     }
 
     public record OAuthClientView(
@@ -290,7 +361,9 @@ public class OAuthClientAdministrationService {
             List<String> scopes,
             String clientType,
             boolean pkceRequired,
-            Instant createdAt) {
+            Instant createdAt,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+            String clientSecret) {
     }
 
     private record ValidatedClient(
@@ -298,6 +371,23 @@ public class OAuthClientAdministrationService {
             String clientName,
             Set<String> redirectUris,
             Set<String> postLogoutRedirectUris,
-            Set<String> scopes) {
+            Set<String> scopes,
+            ClientType clientType) {
+    }
+
+    private enum ClientType {
+        PUBLIC,
+        CONFIDENTIAL;
+
+        private static ClientType parse(String value) {
+            if (value == null || value.isBlank()) {
+                return PUBLIC;
+            }
+            try {
+                return valueOf(value.trim().toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException exception) {
+                throw new IllegalArgumentException("Tipo de cliente deve ser PUBLIC ou CONFIDENTIAL");
+            }
+        }
     }
 }

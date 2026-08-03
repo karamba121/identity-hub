@@ -18,6 +18,7 @@ interface ClientForm {
   clientName: string;
   redirectUris: string;
   postLogoutRedirectUris: string;
+  clientType: 'PUBLIC' | 'CONFIDENTIAL';
 }
 
 @Component({
@@ -26,8 +27,6 @@ interface ClientForm {
   templateUrl: './oauth-clients-admin.component.html',
 })
 export class OAuthClientsAdminComponent implements OnInit {
-  readonly supportedScopes = ['openid', 'profile', 'email', 'demo.read', 'identity.admin'];
-
   loading = true;
   saving = false;
   authenticated = false;
@@ -40,6 +39,7 @@ export class OAuthClientsAdminComponent implements OnInit {
   selectedTenantId = '';
   editingClientId: string | null = null;
   selectedScopes = new Set<string>(['openid', 'profile']);
+  createdSecret = '';
   form: ClientForm = this.emptyForm();
 
   constructor(
@@ -81,12 +81,14 @@ export class OAuthClientsAdminComponent implements OnInit {
   }
 
   edit(client: OAuthClientView): void {
+    this.createdSecret = '';
     this.editingClientId = client.clientId;
     this.form = {
       clientId: client.clientId,
       clientName: client.clientName,
       redirectUris: client.redirectUris.join('\n'),
       postLogoutRedirectUris: client.postLogoutRedirectUris.join('\n'),
+      clientType: client.clientType,
     };
     this.selectedScopes = new Set(client.scopes);
     this.successMessage = '';
@@ -97,6 +99,7 @@ export class OAuthClientsAdminComponent implements OnInit {
     this.editingClientId = null;
     this.form = this.emptyForm();
     this.selectedScopes = new Set(['openid', 'profile']);
+    this.createdSecret = '';
     this.errorMessage = '';
   }
 
@@ -105,6 +108,15 @@ export class OAuthClientsAdminComponent implements OnInit {
     const updated = new Set(this.selectedScopes);
     checked ? updated.add(scope) : updated.delete(scope);
     this.selectedScopes = updated;
+  }
+
+  clientTypeChanged(): void {
+    this.form.redirectUris = '';
+    this.form.postLogoutRedirectUris = '';
+    this.selectedScopes = this.form.clientType === 'CONFIDENTIAL'
+      ? new Set(['demo.read'])
+      : new Set(['openid', 'profile']);
+    this.createdSecret = '';
   }
 
   async save(): Promise<void> {
@@ -119,13 +131,15 @@ export class OAuthClientsAdminComponent implements OnInit {
       redirectUris: this.lines(this.form.redirectUris),
       postLogoutRedirectUris: this.lines(this.form.postLogoutRedirectUris),
       scopes: [...this.selectedScopes],
+      clientType: this.form.clientType,
     };
     try {
       if (this.editingClientId) {
         await this.api.update(this.selectedTenantId, this.editingClientId, command);
         this.successMessage = 'Cliente OAuth atualizado com sucesso.';
       } else {
-        await this.api.create(this.selectedTenantId, { ...command, clientId: this.form.clientId });
+        const created = await this.api.create(this.selectedTenantId, { ...command, clientId: this.form.clientId });
+        this.createdSecret = created.clientSecret ?? '';
         this.successMessage = 'Cliente OAuth criado com sucesso.';
       }
       this.resetFormPreservingMessage();
@@ -170,6 +184,12 @@ export class OAuthClientsAdminComponent implements OnInit {
 
   get canReadAudit(): boolean {
     return this.selectedTenant?.permissions.includes('security.audit.read') ?? false;
+  }
+
+  get supportedScopes(): string[] {
+    return this.form.clientType === 'CONFIDENTIAL'
+      ? ['demo.read']
+      : ['openid', 'profile', 'email', 'demo.read', 'identity.admin'];
   }
 
   private async initialize(): Promise<void> {
@@ -277,7 +297,13 @@ export class OAuthClientsAdminComponent implements OnInit {
   }
 
   private emptyForm(): ClientForm {
-    return { clientId: '', clientName: '', redirectUris: '', postLogoutRedirectUris: '' };
+    return {
+      clientId: '',
+      clientName: '',
+      redirectUris: '',
+      postLogoutRedirectUris: '',
+      clientType: 'PUBLIC',
+    };
   }
 
   private resetFormPreservingMessage(): void {

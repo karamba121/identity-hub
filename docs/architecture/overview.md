@@ -8,7 +8,7 @@ mantém relações de acesso por tenant e emite credenciais verificáveis para
 resource servers.
 
 O repositório contém um backend Spring Boot 4.0.7/Java 17 e um frontend Angular
-21 baseado no TailAdmin. As vinte e uma primeiras fatias verticais implementam
+21 baseado no TailAdmin. As vinte e cinco primeiras fatias verticais implementam
 Authorization Code com PKCE, login e consentimento por interação opaca,
 persistência PostgreSQL, metadata, JWK Set, ID token, access token, UserInfo e
 uma API protegida por issuer, audience e escopo. Refresh tokens opacos são

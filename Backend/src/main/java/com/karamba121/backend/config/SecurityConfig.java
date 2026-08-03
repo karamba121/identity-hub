@@ -35,6 +35,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtValidationException;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
@@ -360,6 +361,12 @@ public class SecurityConfig {
                 }
                 if (!audiences.isEmpty()) {
                     context.getClaims().audience(audiences);
+                }
+                if (AuthorizationGrantType.CLIENT_CREDENTIALS.equals(context.getAuthorizationGrantType())) {
+                    String clientId = context.getRegisteredClient().getClientId();
+                    context.getClaims()
+                            .subject("client:" + clientId)
+                            .claim("client_id", clientId);
                 }
             }
             users.findByEmailIgnoreCase(context.getPrincipal().getName()).ifPresent(user -> context.getClaims()

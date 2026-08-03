@@ -10,6 +10,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Instant;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpHeaders;
 import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
@@ -26,8 +29,10 @@ import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.karamba121.backend.features.access.AdminResourceContract;
@@ -44,6 +49,8 @@ import com.karamba121.backend.features.tenancy.TenantMembershipRepository;
 import com.karamba121.backend.features.tenancy.TenantRepository;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import com.nimbusds.jwt.SignedJWT;
+import com.jayway.jsonpath.JsonPath;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -77,6 +84,9 @@ class OAuthClientAdministrationEndpointTests {
 
     @Autowired
     private JdbcOperations jdbc;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Autowired
     private JWKSource<SecurityContext> jwkSource;
@@ -152,6 +162,87 @@ class OAuthClientAdministrationEndpointTests {
         mockMvc.perform(get(baseUrl + "/" + clientId)
                         .header("Authorization", bearer(actor)))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void createsConfidentialClientAndIssuesMachineTokenWithoutPersistingRawSecret() throws Exception {
+        Tenant tenant = tenant("oauth-machine");
+        TenantMembership actor = actor(
+                tenant, "oauth-machine-admin", PermissionCode.OAUTH_CLIENTS_READ, PermissionCode.OAUTH_CLIENTS_MANAGE);
+        String clientId = "machine-" + shortSuffix();
+
+        MvcResult creation = mockMvc.perform(post(baseUrl(tenant))
+                        .header("Authorization", bearer(actor))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(confidentialPayload(clientId)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.clientType").value("CONFIDENTIAL"))
+                .andExpect(jsonPath("$.pkceRequired").value(false))
+                .andExpect(jsonPath("$.redirectUris.length()").value(0))
+                .andExpect(jsonPath("$.scopes[0]").value("demo.read"))
+                .andExpect(jsonPath("$.clientSecret").isNotEmpty())
+                .andReturn();
+
+        String rawSecret = JsonPath.read(creation.getResponse().getContentAsString(), "$.clientSecret");
+        RegisteredClient registered = clients.findByClientId(clientId);
+        assertThat(registered).isNotNull();
+        assertThat(registered.getClientSecret()).isNotEqualTo(rawSecret).startsWith("{argon2id}");
+        assertThat(passwordEncoder.matches(rawSecret, registered.getClientSecret())).isTrue();
+        assertThat(registered.getClientAuthenticationMethods())
+                .containsExactly(ClientAuthenticationMethod.CLIENT_SECRET_BASIC);
+        assertThat(registered.getAuthorizationGrantTypes())
+                .containsExactly(AuthorizationGrantType.CLIENT_CREDENTIALS);
+
+        mockMvc.perform(get(baseUrl(tenant) + "/" + clientId)
+                        .header("Authorization", bearer(actor)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.clientSecret").doesNotExist());
+
+        String basic = Base64.getEncoder().encodeToString(
+                (clientId + ":" + rawSecret).getBytes(StandardCharsets.UTF_8));
+        MvcResult tokenResponse = mockMvc.perform(post("/oauth2/token")
+                        .header(HttpHeaders.AUTHORIZATION, "Basic " + basic)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("grant_type", "client_credentials")
+                        .param("scope", "demo.read"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.access_token").isNotEmpty())
+                .andExpect(jsonPath("$.scope").value("demo.read"))
+                .andExpect(jsonPath("$.refresh_token").doesNotExist())
+                .andReturn();
+
+        String accessToken = JsonPath.read(tokenResponse.getResponse().getContentAsString(), "$.access_token");
+        var claims = SignedJWT.parse(accessToken).getJWTClaimsSet();
+        assertThat(claims.getSubject()).isEqualTo("client:" + clientId);
+        assertThat(claims.getAudience()).containsExactly("identity-hub-api");
+        assertThat(claims.getStringClaim("client_id")).isEqualTo(clientId);
+    }
+
+    @Test
+    void publicClientCannotUseClientCredentials() throws Exception {
+        Tenant tenant = tenant("oauth-public-grant");
+        TenantMembership actor = actor(
+                tenant, "oauth-public-admin", PermissionCode.OAUTH_CLIENTS_READ, PermissionCode.OAUTH_CLIENTS_MANAGE);
+        String clientId = "public-" + shortSuffix();
+        mockMvc.perform(post(baseUrl(tenant))
+                        .header("Authorization", bearer(actor))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createPayload(
+                                clientId,
+                                "Portal público",
+                                "https://public.example.test/callback",
+                                "https://public.example.test/logout")))
+                .andExpect(status().isCreated());
+
+        String basic = Base64.getEncoder().encodeToString(
+                (clientId + ":not-a-client-secret").getBytes(StandardCharsets.UTF_8));
+        mockMvc.perform(post("/oauth2/token")
+                        .header(HttpHeaders.AUTHORIZATION, "Basic " + basic)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("grant_type", "client_credentials")
+                        .param("scope", "demo.read"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("invalid_client"));
     }
 
     @Test
@@ -432,5 +523,18 @@ class OAuthClientAdministrationEndpointTests {
                   "scopes":["openid","profile"]
                 }
                 """.formatted(clientName, redirectUri);
+    }
+
+    private static String confidentialPayload(String clientId) {
+        return """
+                {
+                  "clientId":"%s",
+                  "clientName":"Integração de máquina",
+                  "clientType":"CONFIDENTIAL",
+                  "redirectUris":[],
+                  "postLogoutRedirectUris":[],
+                  "scopes":["demo.read"]
+                }
+                """.formatted(clientId);
     }
 }

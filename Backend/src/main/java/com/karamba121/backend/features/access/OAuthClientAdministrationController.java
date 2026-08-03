@@ -133,11 +133,12 @@ public class OAuthClientAdministrationController {
             String clientName,
             Set<String> redirectUris,
             Set<String> postLogoutRedirectUris,
-            Set<String> scopes) {
+            Set<String> scopes,
+            String clientType) {
 
         OAuthClientCommand command() {
             return new OAuthClientCommand(
-                    clientId, clientName, redirectUris, postLogoutRedirectUris, scopes);
+                    clientId, clientName, redirectUris, postLogoutRedirectUris, scopes, clientType);
         }
     }
 
@@ -149,7 +150,7 @@ public class OAuthClientAdministrationController {
 
         OAuthClientCommand command() {
             return new OAuthClientCommand(
-                    null, clientName, redirectUris, postLogoutRedirectUris, scopes);
+                    null, clientName, redirectUris, postLogoutRedirectUris, scopes, null);
         }
     }
 }

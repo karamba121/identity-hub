@@ -154,10 +154,10 @@ testes demonstram expiração, uso único e revogação das credenciais temporá
 
 ## Fase 7 — Client Credentials e resource servers `MVP`
 
-- [ ] cadastrar cliente confidencial com secret exibido uma única vez;
-- [ ] persistir client secret somente com proteção não reversível;
-- [ ] habilitar Client Credentials por concessão explícita;
-- [ ] emitir token com sujeito de máquina, audience e escopos mínimos;
+- [x] cadastrar cliente confidencial com secret exibido uma única vez;
+- [x] persistir client secret somente com proteção não reversível;
+- [x] habilitar Client Credentials por concessão explícita;
+- [x] emitir token com sujeito de máquina, audience e escopos mínimos;
 - [x] criar resource server demonstrativo, inicialmente exercitado pelo cliente
   público e reutilizável na futura fatia de Client Credentials;
 - [ ] publicar exemplo de validação de issuer, audience, assinatura e escopos;
