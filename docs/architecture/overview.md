@@ -8,7 +8,7 @@ mantém relações de acesso por tenant e emite credenciais verificáveis para
 resource servers.
 
 O repositório contém um backend Spring Boot 4.0.7/Java 17 e um frontend Angular
-21 baseado no TailAdmin. As vinte e oito primeiras fatias verticais implementam
+21 baseado no TailAdmin. As vinte e nove primeiras fatias verticais implementam
 Authorization Code com PKCE, login e consentimento por interação opaca,
 persistência PostgreSQL, metadata, JWK Set, ID token, access token, UserInfo e
 uma API protegida por issuer, audience e escopo. Refresh tokens opacos são
@@ -421,10 +421,15 @@ um usuário habilitado com membership ativa e papel `administrator`.
 - refresh tokens são opacos; o valor corrente permanece na autorização
   operacional do servidor, enquanto família e histórico persistem somente
   hashes SHA-256 para detectar reutilização sem reter tokens antigos;
-- JWK Set publica chave atual e chaves anteriores ainda necessárias;
-- rotação possui períodos de publicação, ativação, retirada e destruição;
-- ambientes locais podem usar keystore de desenvolvimento, nunca reutilizado em
-  produção.
+- a origem da chave é abstraída por `SigningKeyProvider`: ambientes locais e de
+  teste usam geração efêmera; ambientes estáveis podem montar um par RSA PEM
+  externo ao artefato;
+- o modo PEM aceita chave privada PKCS#8 e pública X.509, exige ao menos 2048
+  bits, valida criptograficamente o par e deriva `kid` estável por thumbprint
+  quando não houver identificador explícito;
+- o JWK Set atual publica uma única chave. Publicação simultânea da chave atual
+  e das anteriores, com períodos de ativação e retirada, pertence às próximas
+  fatias de rotação.
 
 ## Auditoria e observabilidade
 

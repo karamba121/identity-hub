@@ -1,12 +1,7 @@
 package com.karamba121.backend.config;
 
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.UUID;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -89,8 +84,6 @@ import com.karamba121.backend.features.session.PublicRefreshClientAuthentication
 import com.karamba121.backend.features.session.PublicRefreshClientAuthenticationProvider;
 import com.karamba121.backend.features.session.SessionMetrics;
 import com.karamba121.backend.features.session.CredentialVersionTokenValidator;
-import com.nimbusds.jose.jwk.JWKSet;
-import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 
@@ -285,13 +278,6 @@ public class SecurityConfig {
     }
 
     @Bean
-    JWKSource<SecurityContext> jwkSource() {
-        RSAKey rsaKey = generateRsa();
-        JWKSet jwkSet = new JWKSet(rsaKey);
-        return (jwkSelector, securityContext) -> jwkSelector.select(jwkSet);
-    }
-
-    @Bean
     @Primary
     JwtDecoder jwtDecoder(JWKSource<SecurityContext> jwkSource) {
         return OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource);
@@ -393,17 +379,4 @@ public class SecurityConfig {
                 new PublicClientRefreshTokenGenerator());
     }
 
-    private static RSAKey generateRsa() {
-        try {
-            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-            keyPairGenerator.initialize(2048);
-            KeyPair keyPair = keyPairGenerator.generateKeyPair();
-            return new RSAKey.Builder((RSAPublicKey) keyPair.getPublic())
-                    .privateKey((RSAPrivateKey) keyPair.getPrivate())
-                    .keyID(UUID.randomUUID().toString())
-                    .build();
-        } catch (Exception exception) {
-            throw new IllegalStateException("Não foi possível gerar a chave de desenvolvimento", exception);
-        }
-    }
 }
