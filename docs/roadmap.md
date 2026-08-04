@@ -188,7 +188,7 @@ tokens dentro da política, e o procedimento de recuperação possui evidência.
 - [x] federação com provedores externos;
 - [x] provisionamento SCIM;
 - [x] device authorization grant para dispositivos limitados;
-- [ ] políticas adaptativas de autenticação;
+- [x] políticas adaptativas de autenticação;
 - [ ] issuer por tenant, apenas se houver requisito comprovado;
 - [ ] implantação altamente disponível e testes de caos;
 - [ ] avaliação de extração de módulos, apenas com evidência operacional.

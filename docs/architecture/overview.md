@@ -216,6 +216,12 @@ Mantém usuário, identificadores normalizados, credenciais, estado da conta,
 tentativas inválidas, recuperação e fatores adicionais. Não conhece detalhes de
 redirect URI ou consentimento OAuth.
 
+Também aplica a política adaptativa no login local por senha. Falhas recentes e
+escopos sensíveis explicitamente configurados podem exigir step-up por TOTP; se
+o fator não estiver disponível, a senha não cria sessão e a pessoa deve usar uma
+passkey ou aguardar o sinal temporário expirar. A exigência fica persistida por
+TTL para que o acerto posterior da senha não apague o sinal de risco.
+
 ### Tenancy
 
 Mantém tenants, memberships, estado de vínculo e resolução segura do contexto.
@@ -455,6 +461,12 @@ usam apenas o identificador interno da identidade como ator e alvo, permitem
 `tenant_id` ausente e são consultáveis somente pela sessão da própria pessoa.
 Segredo TOTP, OTP, códigos de recuperação, e-mail e payload não entram nessa
 trilha.
+
+Decisões adaptativas usam somente categorias fechadas (`RECENT_FAILURES`,
+`SENSITIVE_SCOPE` e `ACTIVE_STEP_UP`). Auditoria e métricas não recebem IP,
+user-agent, e-mail, escopo solicitado ou identificadores como dimensão. O
+baseline não tenta inferir geolocalização, reputação de dispositivo ou risco por
+modelos opacos.
 
 A retenção online da auditoria é uma exceção controlada ao repositório
 append-only: um serviço operacional separado remove, em lotes e por corte UTC,

@@ -14,6 +14,7 @@ public record IdentityHubProperties(
         PasswordRecovery passwordRecovery,
         LoginProtection loginProtection,
         AbuseProtection abuseProtection,
+        AdaptiveAuthentication adaptiveAuthentication,
         AuditRetention auditRetention,
         Observability observability,
         WebAuthn webauthn,
@@ -39,6 +40,14 @@ public record IdentityHubProperties(
             int originLimit,
             int combinationLimit,
             int maximumBuckets) {
+    }
+
+    public record AdaptiveAuthentication(
+            boolean enabled,
+            int failedAttemptThreshold,
+            Duration signalWindow,
+            Duration challengeTtl,
+            Set<String> sensitiveScopes) {
     }
 
     public record AuditRetention(

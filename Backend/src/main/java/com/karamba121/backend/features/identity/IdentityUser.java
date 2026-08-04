@@ -47,6 +47,9 @@ public class IdentityUser {
     @Column(name = "local_credentials_enabled", nullable = false)
     private boolean localCredentialsEnabled;
 
+    @Column(name = "adaptive_step_up_until")
+    private Instant adaptiveStepUpUntil;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -129,6 +132,27 @@ public class IdentityUser {
 
     public boolean hasLocalCredentials() {
         return localCredentialsEnabled;
+    }
+
+    public Instant getAdaptiveStepUpUntil() {
+        return adaptiveStepUpUntil;
+    }
+
+    public boolean requiresAdaptiveStepUp(Instant now) {
+        return adaptiveStepUpUntil != null && adaptiveStepUpUntil.isAfter(now);
+    }
+
+    public void requireAdaptiveStepUpUntil(Instant expiresAt) {
+        if (expiresAt == null) {
+            throw new IllegalArgumentException("Expiração do step-up é obrigatória");
+        }
+        if (adaptiveStepUpUntil == null || expiresAt.isAfter(adaptiveStepUpUntil)) {
+            adaptiveStepUpUntil = expiresAt;
+        }
+    }
+
+    public void clearAdaptiveStepUp() {
+        adaptiveStepUpUntil = null;
     }
 
     public boolean isTemporarilyLocked(Instant now) {

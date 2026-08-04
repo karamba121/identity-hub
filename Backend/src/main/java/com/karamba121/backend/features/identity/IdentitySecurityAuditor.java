@@ -33,7 +33,10 @@ public class IdentitySecurityAuditor {
             SecurityAuditEventType.PASSKEY_AUTHENTICATION_SUCCEEDED,
             SecurityAuditEventType.FEDERATED_IDENTITY_LINKED,
             SecurityAuditEventType.FEDERATED_IDENTITY_UNLINKED,
-            SecurityAuditEventType.FEDERATED_AUTHENTICATION_SUCCEEDED);
+            SecurityAuditEventType.FEDERATED_AUTHENTICATION_SUCCEEDED,
+            SecurityAuditEventType.ADAPTIVE_STEP_UP_REQUIRED,
+            SecurityAuditEventType.ADAPTIVE_PASSWORD_AUTHENTICATION_DENIED,
+            SecurityAuditEventType.ADAPTIVE_STEP_UP_SUCCEEDED);
 
     private final IdentityUserRepository users;
     private final SecurityAuditEventRepository events;
@@ -93,6 +96,27 @@ public class IdentitySecurityAuditor {
         failureRecorder.record(SecurityAuditEvent.failed(
                 SecurityAuditEventType.MFA_CHALLENGE_FAILED,
                 SecurityAuditResult.FAILED,
+                reasonCode,
+                userId,
+                null,
+                TARGET_TYPE,
+                userId,
+                UUID.randomUUID().toString()));
+    }
+
+    @Transactional
+    public void recordAdaptiveEvent(String email, SecurityAuditEventType eventType) {
+        String userId = requireUserId(email);
+        events.save(SecurityAuditEvent.succeeded(
+                eventType, userId, null, TARGET_TYPE, userId, UUID.randomUUID().toString()));
+    }
+
+    @Transactional
+    public void recordAdaptiveDenial(String email, String reasonCode) {
+        String userId = requireUserId(email);
+        events.save(SecurityAuditEvent.failed(
+                SecurityAuditEventType.ADAPTIVE_PASSWORD_AUTHENTICATION_DENIED,
+                SecurityAuditResult.DENIED,
                 reasonCode,
                 userId,
                 null,

@@ -92,6 +92,8 @@ export class SigninFormComponent {
         this.loading = false;
         this.errorMessage = error.status === 429
           ? (error.error?.detail ?? 'Muitas tentativas. Aguarde antes de tentar novamente.')
+          : error.status === 403
+            ? 'A política de segurança exige MFA ou uma passkey para este acesso.'
           : error.status === 401
             ? 'E-mail ou senha inválidos.'
             : 'Não foi possível concluir o login. Reinicie a autorização.';

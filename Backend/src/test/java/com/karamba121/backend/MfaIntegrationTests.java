@@ -224,6 +224,56 @@ class MfaIntegrationTests {
     }
 
     @Test
+    void adaptivePolicyDeniesPasswordOnlyLoginAfterRecentFailures() throws Exception {
+        String email = "adaptive-login-" + UUID.randomUUID() + "@example.test";
+        String password = "Adaptive authentication phrase 2026";
+        IdentityUser user = users.save(new IdentityUser(
+                email, "Adaptive Login", passwordEncoder.encode(password)));
+        entityManager.flush();
+        jdbc.update(
+                "update identity_user set failed_login_attempts = 3, last_failed_login_at = ? where id = ?",
+                Instant.now(),
+                user.getId());
+        entityManager.clear();
+
+        String verifier = "adaptive-verifier-with-more-than-forty-three-characters-12345";
+        String challenge = Base64.getUrlEncoder().withoutPadding().encodeToString(
+                MessageDigest.getInstance("SHA-256").digest(verifier.getBytes(StandardCharsets.US_ASCII)));
+        MvcResult authorization = mockMvc.perform(get("/oauth2/authorize")
+                        .queryParam("response_type", "code")
+                        .queryParam("client_id", "identity-hub-demo")
+                        .queryParam("redirect_uri", "http://localhost:4200/demo/callback")
+                        .queryParam("scope", "openid profile")
+                        .queryParam("state", "adaptive-state")
+                        .queryParam("nonce", "adaptive-nonce")
+                        .queryParam("code_challenge", challenge)
+                        .queryParam("code_challenge_method", "S256"))
+                .andExpect(status().is3xxRedirection()).andReturn();
+        MockHttpSession session = (MockHttpSession) authorization.getRequest().getSession(false);
+        String interactionId = queryParameter(
+                authorization.getResponse().getRedirectedUrl(), "interaction_id");
+
+        mockMvc.perform(post("/api/v1/interactions/{id}/login", interactionId)
+                        .session(session).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"%s\",\"password\":\"%s\"}".formatted(email, password)))
+                .andExpect(status().isForbidden());
+        assertThat(session.getAttribute("SPRING_SECURITY_CONTEXT")).isNull();
+        entityManager.flush();
+
+        assertThat(jdbc.queryForObject(
+                "select adaptive_step_up_until from identity_user where id = ?",
+                Instant.class,
+                user.getId())).isAfter(Instant.now());
+        mockMvc.perform(get("/api/v1/mfa/audit-events").with(user(email)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].eventType")
+                        .value("ADAPTIVE_PASSWORD_AUTHENTICATION_DENIED"))
+                .andExpect(jsonPath("$.items[0].result").value("DENIED"))
+                .andExpect(jsonPath("$.items[0].reasonCode").value("RECENT_FAILURES"));
+    }
+
+    @Test
     void rateLimitsMfaManagementAndAuditsTheRejection() throws Exception {
         String email = "mfa-rate-" + UUID.randomUUID() + "@example.test";
         users.save(new IdentityUser(

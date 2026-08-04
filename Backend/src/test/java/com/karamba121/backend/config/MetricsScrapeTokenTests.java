@@ -44,7 +44,7 @@ class MetricsScrapeTokenTests {
 
     private MetricsScrapeToken token(String inline, String location) {
         IdentityHubProperties properties = new IdentityHubProperties(
-                null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null,
                 new IdentityHubProperties.Observability(
                         new IdentityHubProperties.Metrics(inline, location)),
                 null,

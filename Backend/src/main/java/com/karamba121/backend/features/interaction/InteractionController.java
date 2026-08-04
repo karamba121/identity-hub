@@ -6,6 +6,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
@@ -38,6 +39,7 @@ import com.karamba121.backend.features.abuse.RateLimitService;
 import com.karamba121.backend.features.abuse.RateLimitedOperation;
 import com.karamba121.backend.features.identity.MfaService;
 import com.karamba121.backend.features.identity.IdentitySecurityAuditor;
+import com.karamba121.backend.features.identity.AdaptiveAuthenticationPolicyService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -59,6 +61,7 @@ public class InteractionController {
     private final SessionAuthenticationStrategy sessionStrategy;
     private final MfaService mfa;
     private final IdentitySecurityAuditor identityAuditor;
+    private final AdaptiveAuthenticationPolicyService adaptiveAuthentication;
 
     public InteractionController(
             AuthorizationInteractionService interactions,
@@ -67,7 +70,8 @@ public class InteractionController {
             RateLimitService rateLimits,
             SessionAuthenticationStrategy sessionStrategy,
             MfaService mfa,
-            IdentitySecurityAuditor identityAuditor) {
+            IdentitySecurityAuditor identityAuditor,
+            AdaptiveAuthenticationPolicyService adaptiveAuthentication) {
         this.interactions = interactions;
         this.authenticationManager = authenticationManager;
         this.securityContextRepository = securityContextRepository;
@@ -75,6 +79,7 @@ public class InteractionController {
         this.sessionStrategy = sessionStrategy;
         this.mfa = mfa;
         this.identityAuditor = identityAuditor;
+        this.adaptiveAuthentication = adaptiveAuthentication;
     }
 
     @GetMapping("/{interactionId}")
@@ -115,12 +120,24 @@ public class InteractionController {
             throw new InteractionException(HttpStatus.BAD_REQUEST, "E-mail e senha são obrigatórios");
         }
         rateLimits.check(RateLimitedOperation.LOGIN, request, body.email());
+        AdaptiveAuthenticationPolicyService.Signals signals = adaptiveAuthentication.capture(body.email());
 
         try {
             Authentication authentication = authenticationManager.authenticate(
                     UsernamePasswordAuthenticationToken.unauthenticated(
                             body.email().trim().toLowerCase(), body.password()));
-            if (mfa.isEnabled(authentication.getName())) {
+            boolean mfaEnabled = mfa.isEnabled(authentication.getName());
+            AdaptiveAuthenticationPolicyService.Decision decision = adaptiveAuthentication.evaluate(
+                    authentication.getName(),
+                    Set.copyOf(interactions.scopes(interaction)),
+                    signals,
+                    mfaEnabled);
+            if (decision == AdaptiveAuthenticationPolicyService.Decision.DENY) {
+                throw new InteractionException(
+                        HttpStatus.FORBIDDEN,
+                        "Este acesso exige MFA ou passkey por política de segurança");
+            }
+            if (mfaEnabled) {
                 request.getSession(true).setAttribute(PENDING_MFA_AUTHENTICATION, authentication);
                 request.getSession(false).setAttribute(PENDING_MFA_INTERACTION, interactionId);
                 request.getSession(false).setAttribute(PENDING_MFA_CREATED_AT, Instant.now());
@@ -170,6 +187,7 @@ public class InteractionController {
             throw new InteractionException(HttpStatus.UNAUTHORIZED, "Código MFA inválido");
         }
         clearPendingMfa(request);
+        adaptiveAuthentication.strongAuthenticationSucceeded(authentication.getName());
         completeAuthentication(authentication, interaction, request, response);
         return new LoginResult(interaction.getResumeUri(), false);
     }
@@ -188,6 +206,7 @@ public class InteractionController {
             throw new InteractionException(HttpStatus.UNAUTHORIZED, "Autenticação por passkey obrigatória");
         }
         clearPendingMfa(request);
+        adaptiveAuthentication.strongAuthenticationSucceeded(authentication.getName());
         interactions.completeLogin(interaction, request.getSession(false).getId());
         return new LoginResult(interaction.getResumeUri(), false);
     }

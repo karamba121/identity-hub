@@ -36,6 +36,7 @@ declare qual registro foi substituído.
 | [016](016-external-oidc-federation.md) | Federação OIDC e vínculo seguro de identidades | Aceito |
 | [017](017-scim-user-provisioning.md) | Provisionamento SCIM isolado por tenant | Aceito |
 | [018](018-device-authorization-grant.md) | Device Authorization Grant com consentimento no navegador | Aceito |
+| [019](019-adaptive-authentication-policies.md) | Step-up adaptativo para autenticação por senha | Aceito |
 
 ## Template
 
