@@ -427,9 +427,13 @@ um usuário habilitado com membership ativa e papel `administrator`.
 - o modo PEM aceita chave privada PKCS#8 e pública X.509, exige ao menos 2048
   bits, valida criptograficamente o par e deriva `kid` estável por thumbprint
   quando não houver identificador explícito;
-- o JWK Set atual publica uma única chave. Publicação simultânea da chave atual
-  e das anteriores, com períodos de ativação e retirada, pertence às próximas
-  fatias de rotação.
+- o modo `rotating-pem` carrega antecipadamente os pares atual e próximo, publica
+  a próxima chave pública antes da ativação agendada e, no instante configurado,
+  passa a assinar com ela sem reiniciar o processo;
+- durante a retenção configurada, o JWK Set mantém a chave anterior pública para
+  validar tokens ainda vigentes; depois da janela, somente a nova chave permanece;
+- a janela aceita varia de 5 minutos a 7 dias e deve cobrir ao menos a vida máxima
+  dos tokens emitidos, além da margem operacional escolhida para relógios e cache.
 
 ## Auditoria e observabilidade
 

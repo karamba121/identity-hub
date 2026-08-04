@@ -170,9 +170,9 @@ o resource server rejeita tokens destinados a outra audience.
 ## Fase 8 — Chaves, operação e resiliência `MVP`
 
 - [x] abstrair origem de chaves por ambiente;
-- [ ] implementar geração e rotação planejada de chaves;
-- [ ] publicar chave atual e chaves anteriores durante janela segura;
-- [ ] testar tokens emitidos antes, durante e após rotação;
+- [x] implementar geração e rotação planejada de chaves;
+- [x] publicar chave atual e chaves anteriores durante janela segura;
+- [x] testar tokens emitidos antes, durante e após rotação;
 - [ ] definir backup, restauração e retenção de auditoria;
 - [ ] criar painéis e alertas para autenticação, erro e abuso;
 - [ ] executar testes de carga focados nos endpoints críticos;

@@ -404,7 +404,8 @@ O [resource server independente](examples/resource-server/README.md) demonstra
 como uma API separada valida os tokens emitidos pelo Identity Hub e inclui um
 fluxo completo de Client Credentials.
 O [guia de chaves de assinatura](docs/operations/signing-keys.md) diferencia a
-fonte efêmera local do par PEM externo destinado a ambientes estáveis.
+fonte efêmera local, o par PEM externo e a rotação planejada com publicação
+antecipada e retenção segura da chave anterior.
 
 ## Licença
 

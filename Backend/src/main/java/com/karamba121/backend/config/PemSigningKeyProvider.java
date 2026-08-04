@@ -29,9 +29,17 @@ final class PemSigningKeyProvider implements SigningKeyProvider {
     }
 
     @Override
-    public RSAKey load() {
-        String privateLocation = required(properties.privateKeyLocation(), "private-key-location");
-        String publicLocation = required(properties.publicKeyLocation(), "public-key-location");
+    public SigningKeySet load() {
+        return SigningKeySet.single(loadKey(
+                properties.privateKeyLocation(),
+                properties.publicKeyLocation(),
+                properties.keyId(),
+                ""));
+    }
+
+    RSAKey loadKey(String privateLocation, String publicLocation, String keyId, String fieldPrefix) {
+        privateLocation = required(privateLocation, fieldPrefix + "private-key-location");
+        publicLocation = required(publicLocation, fieldPrefix + "public-key-location");
         try {
             KeyFactory keyFactory = KeyFactory.getInstance("RSA");
             RSAPrivateKey privateKey = (RSAPrivateKey) keyFactory.generatePrivate(new PKCS8EncodedKeySpec(
@@ -40,12 +48,12 @@ final class PemSigningKeyProvider implements SigningKeyProvider {
                     pem(publicLocation, "PUBLIC KEY")));
             validatePair(privateKey, publicKey);
             RSAKey publicJwk = new RSAKey.Builder(publicKey).build();
-            String keyId = properties.keyId() == null
+            String resolvedKeyId = keyId == null
                     ? publicJwk.computeThumbprint().toString()
-                    : properties.keyId();
+                    : keyId;
             return new RSAKey.Builder(publicKey)
                     .privateKey(privateKey)
-                    .keyID(keyId)
+                    .keyID(resolvedKeyId)
                     .build();
         } catch (Exception exception) {
             throw new IllegalStateException(

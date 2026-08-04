@@ -25,7 +25,7 @@ import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtValidationException;
 import org.springframework.security.oauth2.jwt.JwtValidators;
@@ -369,9 +369,9 @@ public class SecurityConfig {
 
     @Bean
     OAuth2TokenGenerator<?> tokenGenerator(
-            JWKSource<SecurityContext> jwkSource,
+            JwtEncoder jwtEncoder,
             OAuth2TokenCustomizer<JwtEncodingContext> jwtCustomizer) {
-        JwtGenerator jwtGenerator = new JwtGenerator(new NimbusJwtEncoder(jwkSource));
+        JwtGenerator jwtGenerator = new JwtGenerator(jwtEncoder);
         jwtGenerator.setJwtCustomizer(jwtCustomizer);
         return new DelegatingOAuth2TokenGenerator(
                 jwtGenerator,
