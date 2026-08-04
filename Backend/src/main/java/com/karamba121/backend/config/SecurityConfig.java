@@ -75,6 +75,8 @@ import com.karamba121.backend.features.identity.NormalizingPasswordEncoder;
 import com.karamba121.backend.features.access.RotatingClientSecretPasswordEncoder;
 import com.karamba121.backend.features.access.AdminResourceContract;
 import com.karamba121.backend.features.interaction.LoginInteractionEntryPoint;
+import com.karamba121.backend.features.interaction.PublicParClientAuthenticationConverter;
+import com.karamba121.backend.features.interaction.PublicParClientAuthenticationProvider;
 import com.karamba121.backend.features.resource.DemoResourceContract;
 import com.karamba121.backend.features.session.RefreshTokenFamilyRepository;
 import com.karamba121.backend.features.session.RefreshTokenHistoryRepository;
@@ -104,11 +106,16 @@ public class SecurityConfig {
         http.oauth2AuthorizationServer(authorizationServer -> authorizationServer
                 .tokenGenerator(tokenGenerator)
                 .clientAuthentication(client -> client
-                        .authenticationConverters(converters -> converters.add(0,
-                                new PublicRefreshClientAuthenticationConverter()))
-                        .authenticationProviders(providers -> providers.add(0,
-                                new PublicRefreshClientAuthenticationProvider(registeredClients))))
+                        .authenticationConverters(converters -> {
+                            converters.add(0, new PublicParClientAuthenticationConverter());
+                            converters.add(0, new PublicRefreshClientAuthenticationConverter());
+                        })
+                        .authenticationProviders(providers -> {
+                            providers.add(0, new PublicParClientAuthenticationProvider(registeredClients));
+                            providers.add(0, new PublicRefreshClientAuthenticationProvider(registeredClients));
+                        }))
                 .authorizationEndpoint(endpoint -> endpoint.consentPage("/oauth2/consent"))
+                .pushedAuthorizationRequestEndpoint(Customizer.withDefaults())
                 .tokenEndpoint(endpoint -> endpoint.authenticationProviders(providers -> {
                     for (int index = 0; index < providers.size(); index++) {
                         AuthenticationProvider provider = providers.get(index);

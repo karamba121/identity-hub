@@ -1,6 +1,7 @@
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { PushedAuthorizationRequestService } from './pushed-authorization-request.service';
 
 interface TokenResponse {
   access_token: string;
@@ -21,7 +22,10 @@ export class AdminOAuthSessionService {
   private accessToken: string | null = null;
   private accessTokenExpiresAt = 0;
 
-  constructor(private readonly http: HttpClient) {}
+  constructor(
+    private readonly http: HttpClient,
+    private readonly pushedAuthorizationRequests: PushedAuthorizationRequestService,
+  ) {}
 
   async startAuthorization(): Promise<void> {
     const verifier = this.randomValue(64);
@@ -32,16 +36,21 @@ export class AdminOAuthSessionService {
     sessionStorage.setItem(this.stateKey, state);
     sessionStorage.setItem(this.nonceKey, nonce);
 
-    const authorizationUrl = new URL('/oauth2/authorize', window.location.origin);
-    authorizationUrl.searchParams.set('response_type', 'code');
-    authorizationUrl.searchParams.set('client_id', this.clientId);
-    authorizationUrl.searchParams.set('redirect_uri', this.callbackUri());
-    authorizationUrl.searchParams.set('scope', 'openid profile identity.admin');
-    authorizationUrl.searchParams.set('state', state);
-    authorizationUrl.searchParams.set('nonce', nonce);
-    authorizationUrl.searchParams.set('code_challenge', challenge);
-    authorizationUrl.searchParams.set('code_challenge_method', 'S256');
-    window.location.assign(authorizationUrl.toString());
+    try {
+      const requestUri = await this.pushedAuthorizationRequests.create({
+        responseType: 'code',
+        clientId: this.clientId,
+        redirectUri: this.callbackUri(),
+        scope: 'openid profile identity.admin',
+        state,
+        nonce,
+        codeChallenge: challenge,
+      });
+      window.location.assign(this.pushedAuthorizationRequests.authorizationUrl(this.clientId, requestUri));
+    } catch {
+      this.clearInteraction();
+      throw new Error('Não foi possível proteger a autorização administrativa com PAR.');
+    }
   }
 
   async completeAuthorization(code: string, returnedState: string): Promise<void> {

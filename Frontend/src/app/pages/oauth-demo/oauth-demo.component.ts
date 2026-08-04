@@ -2,6 +2,7 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { DatePipe } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { PushedAuthorizationRequestService } from '../../core/services/pushed-authorization-request.service';
 
 interface TokenResponse {
   access_token: string;
@@ -67,6 +68,7 @@ export class OauthDemoComponent implements OnInit {
   constructor(
     private readonly route: ActivatedRoute,
     private readonly http: HttpClient,
+    private readonly pushedAuthorizationRequests: PushedAuthorizationRequestService,
   ) {}
 
   ngOnInit(): void {
@@ -100,16 +102,22 @@ export class OauthDemoComponent implements OnInit {
     sessionStorage.setItem('identity-hub.oidc-nonce', nonce);
 
     const callback = `${window.location.origin}/demo/callback`;
-    const authorizationUrl = new URL('/oauth2/authorize', window.location.origin);
-    authorizationUrl.searchParams.set('response_type', 'code');
-    authorizationUrl.searchParams.set('client_id', this.clientId);
-    authorizationUrl.searchParams.set('redirect_uri', callback);
-    authorizationUrl.searchParams.set('scope', 'openid profile email demo.read');
-    authorizationUrl.searchParams.set('state', state);
-    authorizationUrl.searchParams.set('nonce', nonce);
-    authorizationUrl.searchParams.set('code_challenge', challenge);
-    authorizationUrl.searchParams.set('code_challenge_method', 'S256');
-    window.location.assign(authorizationUrl.toString());
+    try {
+      const requestUri = await this.pushedAuthorizationRequests.create({
+        responseType: 'code',
+        clientId: this.clientId,
+        redirectUri: callback,
+        scope: 'openid profile email demo.read',
+        state,
+        nonce,
+        codeChallenge: challenge,
+      });
+      window.location.assign(this.pushedAuthorizationRequests.authorizationUrl(this.clientId, requestUri));
+    } catch {
+      this.loading = false;
+      this.clearAuthorizationInteraction();
+      this.errorMessage = 'Não foi possível proteger a solicitação de autorização com PAR.';
+    }
   }
 
   private async exchangeCode(code: string, returnedState: string): Promise<void> {
@@ -367,9 +375,7 @@ export class OauthDemoComponent implements OnInit {
   private clearLocalSession(preserveLogoutState = false): void {
     sessionStorage.removeItem(this.refreshTokenKey);
     sessionStorage.removeItem(this.idTokenKey);
-    sessionStorage.removeItem('identity-hub.pkce-verifier');
-    sessionStorage.removeItem('identity-hub.oauth-state');
-    sessionStorage.removeItem('identity-hub.oidc-nonce');
+    this.clearAuthorizationInteraction();
     if (!preserveLogoutState) {
       sessionStorage.removeItem(this.logoutStateKey);
     }
@@ -379,5 +385,11 @@ export class OauthDemoComponent implements OnInit {
     this.tenants = [];
     this.permissionCatalog = null;
     this.sessionExpiresAt = null;
+  }
+
+  private clearAuthorizationInteraction(): void {
+    sessionStorage.removeItem('identity-hub.pkce-verifier');
+    sessionStorage.removeItem('identity-hub.oauth-state');
+    sessionStorage.removeItem('identity-hub.oidc-nonce');
   }
 }

@@ -17,6 +17,9 @@ import org.springframework.security.oauth2.server.authorization.client.Registere
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
 
 import com.karamba121.backend.config.IdentityHubProperties;
@@ -27,29 +30,38 @@ import jakarta.servlet.http.HttpServletRequest;
 public class AuthorizationInteractionService {
 
     private static final OAuth2TokenType STATE_TOKEN_TYPE = new OAuth2TokenType("state");
+    private static final String PAR_REQUEST_URI_PREFIX = "urn:ietf:params:oauth:request_uri:";
+    private static final String PAR_REQUEST_URI_DELIMITER = "___";
 
     private final SecureRandom secureRandom = new SecureRandom();
     private final AuthorizationInteractionRepository interactions;
     private final RegisteredClientRepository clients;
     private final OAuth2AuthorizationService authorizations;
     private final IdentityHubProperties properties;
+    private final TransactionTemplate cleanupTransaction;
 
     public AuthorizationInteractionService(
             AuthorizationInteractionRepository interactions,
             RegisteredClientRepository clients,
             OAuth2AuthorizationService authorizations,
-            IdentityHubProperties properties) {
+            IdentityHubProperties properties,
+            PlatformTransactionManager transactionManager) {
         this.interactions = interactions;
         this.clients = clients;
         this.authorizations = authorizations;
         this.properties = properties;
+        this.cleanupTransaction = new TransactionTemplate(transactionManager);
+        this.cleanupTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
     @Transactional
     public String createLogin(HttpServletRequest request) {
         String clientId = required(request.getParameter("client_id"), "client_id ausente");
         RegisteredClient client = requireClient(clientId);
-        String redirectUri = required(request.getParameter("redirect_uri"), "redirect_uri ausente");
+        OAuth2AuthorizationRequest pushedRequest = resolvePushedRequest(request, client);
+        String redirectUri = pushedRequest == null
+                ? required(request.getParameter("redirect_uri"), "redirect_uri ausente")
+                : pushedRequest.getRedirectUri();
         if (!client.getRedirectUris().contains(redirectUri)) {
             throw new InteractionException(HttpStatus.BAD_REQUEST, "redirect_uri inválida");
         }
@@ -64,10 +76,55 @@ public class AuthorizationInteractionService {
                 InteractionType.LOGIN,
                 null,
                 clientId,
-                request.getParameter("scope"),
-                request.getParameter("state"),
+                pushedRequest == null ? request.getParameter("scope") : String.join(" ", pushedRequest.getScopes()),
+                pushedRequest == null ? request.getParameter("state") : pushedRequest.getState(),
                 resumeUri,
                 redirectUri);
+    }
+
+    private OAuth2AuthorizationRequest resolvePushedRequest(
+            HttpServletRequest request,
+            RegisteredClient client) {
+        String requestUri = request.getParameter("request_uri");
+        if (!StringUtils.hasText(requestUri)) {
+            return null;
+        }
+        if (!requestUri.startsWith(PAR_REQUEST_URI_PREFIX)) {
+            throw invalidPushedRequest();
+        }
+        String state = requestUri.substring(PAR_REQUEST_URI_PREFIX.length());
+        int delimiter = state.lastIndexOf(PAR_REQUEST_URI_DELIMITER);
+        if (delimiter <= 0) {
+            throw invalidPushedRequest();
+        }
+        Instant expiresAt;
+        try {
+            expiresAt = Instant.ofEpochMilli(Long.parseLong(
+                    state.substring(delimiter + PAR_REQUEST_URI_DELIMITER.length())));
+        } catch (RuntimeException exception) {
+            throw invalidPushedRequest();
+        }
+
+        OAuth2Authorization authorization = authorizations.findByToken(state, STATE_TOKEN_TYPE);
+        if (authorization == null) {
+            throw invalidPushedRequest();
+        }
+        if (!expiresAt.isAfter(Instant.now())) {
+            cleanupTransaction.executeWithoutResult(status -> authorizations.remove(authorization));
+            throw invalidPushedRequest();
+        }
+        if (!authorization.getRegisteredClientId().equals(client.getId())) {
+            throw invalidPushedRequest();
+        }
+        OAuth2AuthorizationRequest authorizationRequest = authorizationRequest(authorization);
+        if (!client.getClientId().equals(authorizationRequest.getClientId())) {
+            throw invalidPushedRequest();
+        }
+        return authorizationRequest;
+    }
+
+    private InteractionException invalidPushedRequest() {
+        return new InteractionException(HttpStatus.BAD_REQUEST, "request_uri PAR inválida");
     }
 
     @Transactional
