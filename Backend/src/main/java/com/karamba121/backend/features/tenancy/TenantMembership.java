@@ -100,4 +100,8 @@ public class TenantMembership {
     public void suspend() {
         this.status = MembershipStatus.SUSPENDED;
     }
+
+    public void activate() {
+        this.status = MembershipStatus.ACTIVE;
+    }
 }

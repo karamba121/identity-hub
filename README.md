@@ -18,7 +18,7 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** trinta e sete fatias verticais executáveis. O repositório contém
+> **Estado atual:** trinta e oito fatias verticais executáveis. O repositório contém
 > Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
 > persistência PostgreSQL, tokens OIDC, um cliente público demonstrativo e uma
 > API protegida por issuer, audience e escopo. A terceira fatia acrescenta
@@ -99,7 +99,10 @@ context em um microsserviço artificial.
 > trigésimo sétimo incremento adiciona federação OIDC configurável, com
 > Authorization Code, PKCE, `state`, `nonce`, e-mail confirmado, provisionamento
 > de contas novas e vínculo explícito para contas locais existentes, evitando
-> associação silenciosa somente pelo e-mail. O
+> associação silenciosa somente pelo e-mail. O trigésimo oitavo incremento
+> entrega provisionamento SCIM 2.0 de usuários por tenant, autenticado por
+> Client Credentials com scopes e audience próprios, sem importar papéis ou
+> desabilitar a identidade em outros tenants. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 
@@ -199,6 +202,7 @@ O projeto deve comprovar:
 - Pushed Authorization Requests (PAR) com referência curta e de uso único;
 - passkeys WebAuthn para login sem senha e verificação local do usuário;
 - federação OIDC com provedor externo configurável e vínculo explícito de conta;
+- provisionamento SCIM 2.0 de usuários isolado por tenant;
 - Client Credentials para integrações serviço a serviço;
 - refresh token com rotação e detecção de reutilização;
 - revogação e introspecção quando aplicável ao tipo de token;

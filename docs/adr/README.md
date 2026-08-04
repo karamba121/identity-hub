@@ -34,6 +34,7 @@ declare qual registro foi substituído.
 | [014](014-totp-mfa-and-recovery-codes.md) | MFA TOTP e códigos de recuperação | Aceito |
 | [015](015-passkeys-webauthn.md) | Passkeys WebAuthn para autenticação sem senha | Aceito |
 | [016](016-external-oidc-federation.md) | Federação OIDC e vínculo seguro de identidades | Aceito |
+| [017](017-scim-user-provisioning.md) | Provisionamento SCIM isolado por tenant | Aceito |
 
 ## Template
 

@@ -150,6 +150,12 @@
               <p class="mt-1 text-sm text-gray-500">
                 {{ form.clientType === 'PUBLIC' ? 'Authorization Code com PKCE.' : 'Client Credentials para integração entre sistemas.' }}
               </p>
+              @if (form.clientType === 'CONFIDENTIAL') {
+                <p class="mt-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
+                  Para provisionamento SCIM, use <code>scim.read</code> para consulta e
+                  <code>scim.write</code> para criar, atualizar, suspender e excluir recursos do tenant.
+                </p>
+              }
             </div>
             @if (editingClientId) {
               <button type="button" (click)="resetForm()" class="text-sm font-medium text-brand-600 hover:text-brand-700">Cancelar</button>

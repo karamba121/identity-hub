@@ -114,7 +114,7 @@ export class OAuthClientsAdminComponent implements OnInit {
     this.form.redirectUris = '';
     this.form.postLogoutRedirectUris = '';
     this.selectedScopes = this.form.clientType === 'CONFIDENTIAL'
-      ? new Set(['demo.read'])
+      ? new Set(['scim.read'])
       : new Set(['openid', 'profile']);
     this.createdSecret = '';
   }
@@ -230,7 +230,7 @@ export class OAuthClientsAdminComponent implements OnInit {
 
   get supportedScopes(): string[] {
     return this.form.clientType === 'CONFIDENTIAL'
-      ? ['demo.read']
+      ? ['demo.read', 'scim.read', 'scim.write']
       : ['openid', 'profile', 'email', 'demo.read', 'identity.admin'];
   }
 
@@ -327,6 +327,9 @@ export class OAuthClientsAdminComponent implements OnInit {
       TENANT_MEMBERSHIP_ROLE_ASSIGNED: 'Papel de membership atribuído',
       TENANT_MEMBERSHIP_SUSPENDED: 'Membership suspensa',
       TENANT_MEMBERSHIP_REMOVED: 'Membership removida',
+      SCIM_USER_CREATED: 'Usuário provisionado via SCIM',
+      SCIM_USER_UPDATED: 'Usuário SCIM atualizado',
+      SCIM_USER_DELETED: 'Usuário SCIM removido',
     };
     return labels[eventType] ?? eventType;
   }

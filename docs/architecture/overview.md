@@ -95,7 +95,8 @@ As evidências e limitações dos incrementos executáveis estão nas fatias
 - não aceitar redirect URI por correspondência parcial ou curinga;
 - não usar JWT como substituto universal de sessão, autorização e auditoria;
 - não separar módulos em microsserviços na primeira versão;
-- não oferecer federação social, SCIM, SAML ou WebAuthn no MVP;
+- não oferecer federação social, SCIM, SAML ou WebAuthn no MVP; federação
+  OIDC, passkeys e o perfil SCIM de usuários foram adicionados depois do MVP;
 - não prometer alta disponibilidade antes de testes operacionais específicos.
 
 ## Contexto e relações de confiança

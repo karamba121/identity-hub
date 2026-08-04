@@ -75,6 +75,13 @@ public class IdentityUser {
         return user;
     }
 
+    public static IdentityUser provisioned(
+            String email, String displayName, String unusablePasswordHash) {
+        IdentityUser user = new IdentityUser(email, displayName, unusablePasswordHash, true);
+        user.localCredentialsEnabled = false;
+        return user;
+    }
+
     public static IdentityUser pendingEmailVerification(
             String email, String displayName, String passwordHash) {
         return new IdentityUser(email, displayName, passwordHash, false);

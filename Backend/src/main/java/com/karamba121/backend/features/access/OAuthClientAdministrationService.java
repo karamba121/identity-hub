@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.karamba121.backend.features.resource.DemoResourceContract;
+import com.karamba121.backend.features.scim.ScimResourceContract;
 import com.karamba121.backend.features.tenancy.Tenant;
 import com.karamba121.backend.features.tenancy.TenantRepository;
 
@@ -35,8 +36,13 @@ public class OAuthClientAdministrationService {
             OidcScopes.PROFILE,
             OidcScopes.EMAIL,
             DemoResourceContract.SCOPE,
-            AdminResourceContract.SCOPE);
-    private static final Set<String> CONFIDENTIAL_SCOPES = Set.of(DemoResourceContract.SCOPE);
+            AdminResourceContract.SCOPE,
+            ScimResourceContract.READ_SCOPE,
+            ScimResourceContract.WRITE_SCOPE);
+    private static final Set<String> CONFIDENTIAL_SCOPES = Set.of(
+            DemoResourceContract.SCOPE,
+            ScimResourceContract.READ_SCOPE,
+            ScimResourceContract.WRITE_SCOPE);
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final RegisteredClientRepository clients;
@@ -250,6 +256,9 @@ public class OAuthClientAdministrationService {
             if (!CONFIDENTIAL_SCOPES.containsAll(scopes)) {
                 throw new IllegalArgumentException("Cliente confidencial aceita somente escopos de máquina");
             }
+        } else if (scopes.contains(ScimResourceContract.READ_SCOPE)
+                || scopes.contains(ScimResourceContract.WRITE_SCOPE)) {
+            throw new IllegalArgumentException("Escopos SCIM exigem cliente confidencial de máquina");
         }
         return new ValidatedClient(clientId, clientName, redirectUris, postLogoutRedirectUris, scopes, clientType);
     }

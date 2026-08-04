@@ -100,6 +100,7 @@ import com.karamba121.backend.features.interaction.LoginInteractionEntryPoint;
 import com.karamba121.backend.features.interaction.PublicParClientAuthenticationConverter;
 import com.karamba121.backend.features.interaction.PublicParClientAuthenticationProvider;
 import com.karamba121.backend.features.resource.DemoResourceContract;
+import com.karamba121.backend.features.scim.ScimResourceContract;
 import com.karamba121.backend.features.session.RefreshTokenFamilyRepository;
 import com.karamba121.backend.features.session.RefreshTokenHistoryRepository;
 import com.karamba121.backend.features.session.RefreshTokenTrackingAuthorizationService;
@@ -163,6 +164,30 @@ public class SecurityConfig {
 
     @Bean
     @Order(2)
+    SecurityFilterChain scimResourceSecurityFilterChain(
+            HttpSecurity http,
+            @Qualifier("scimResourceJwtDecoder") JwtDecoder scimResourceJwtDecoder) throws Exception {
+        String read = "SCOPE_" + ScimResourceContract.READ_SCOPE;
+        String write = "SCOPE_" + ScimResourceContract.WRITE_SCOPE;
+        http.securityMatcher("/scim/v2/**")
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers(HttpMethod.GET, "/scim/v2/**").hasAnyAuthority(read, write)
+                        .anyRequest().hasAuthority(write))
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .csrf(AbstractHttpConfigurer::disable)
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, exception) ->
+                                writeScimSecurityError(response, HttpStatus.UNAUTHORIZED, "Token SCIM inválido"))
+                        .accessDeniedHandler((request, response, exception) ->
+                                writeScimSecurityError(response, HttpStatus.FORBIDDEN, "Escopo SCIM insuficiente")))
+                .oauth2ResourceServer(resourceServer -> resourceServer
+                        .jwt(jwt -> jwt.decoder(scimResourceJwtDecoder)));
+        return http.build();
+    }
+
+    @Bean
+    @Order(3)
     SecurityFilterChain administrativeResourceSecurityFilterChain(
             HttpSecurity http,
             @Qualifier("adminResourceJwtDecoder") JwtDecoder adminResourceJwtDecoder) throws Exception {
@@ -178,7 +203,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    @Order(3)
+    @Order(4)
     SecurityFilterChain demoResourceSecurityFilterChain(
             HttpSecurity http,
             @Qualifier("resourceServerJwtDecoder") JwtDecoder resourceServerJwtDecoder) throws Exception {
@@ -194,7 +219,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    @Order(4)
+    @Order(5)
     SecurityFilterChain applicationSecurityFilterChain(
             HttpSecurity http,
             SessionRegistry sessionRegistry,
@@ -296,6 +321,16 @@ public class SecurityConfig {
     @Bean
     AuthenticationEntryPoint restAuthenticationEntryPoint() {
         return new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED);
+    }
+
+    private static void writeScimSecurityError(
+            jakarta.servlet.http.HttpServletResponse response,
+            HttpStatus status,
+            String detail) throws java.io.IOException {
+        response.setStatus(status.value());
+        response.setContentType("application/scim+json");
+        response.getWriter().write("{\"schemas\":[\"urn:ietf:params:scim:api:messages:2.0:Error\"],"
+                + "\"status\":\"" + status.value() + "\",\"detail\":\"" + detail + "\"}");
     }
 
     @Bean
@@ -475,6 +510,29 @@ public class SecurityConfig {
         };
     }
 
+    @Bean("scimResourceJwtDecoder")
+    JwtDecoder scimResourceJwtDecoder(
+            JWKSource<SecurityContext> jwkSource,
+            IdentityHubProperties properties) {
+        JwtDecoder delegate = OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource);
+        OAuth2TokenValidator<Jwt> issuer = JwtValidators.createDefaultWithIssuer(properties.issuer());
+        OAuth2TokenValidator<Jwt> audience = token -> token.getAudience().contains(ScimResourceContract.AUDIENCE)
+                ? OAuth2TokenValidatorResult.success()
+                : OAuth2TokenValidatorResult.failure(new OAuth2Error(
+                        "invalid_token",
+                        "Access token não foi emitido para a API SCIM",
+                        null));
+        OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(issuer, audience);
+        return encodedToken -> {
+            Jwt jwt = delegate.decode(encodedToken);
+            OAuth2TokenValidatorResult result = validator.validate(jwt);
+            if (result.hasErrors()) {
+                throw new JwtValidationException("Access token SCIM inválido", result.getErrors());
+            }
+            return jwt;
+        };
+    }
+
     @Bean
     OAuth2TokenCustomizer<JwtEncodingContext> identityClaimsCustomizer(IdentityUserRepository users) {
         return context -> {
@@ -489,6 +547,10 @@ public class SecurityConfig {
                 }
                 if (context.getAuthorizedScopes().contains(AdminResourceContract.SCOPE)) {
                     audiences.add(AdminResourceContract.AUDIENCE);
+                }
+                if (context.getAuthorizedScopes().contains(ScimResourceContract.READ_SCOPE)
+                        || context.getAuthorizedScopes().contains(ScimResourceContract.WRITE_SCOPE)) {
+                    audiences.add(ScimResourceContract.AUDIENCE);
                 }
                 if (!audiences.isEmpty()) {
                     context.getClaims().audience(audiences);
