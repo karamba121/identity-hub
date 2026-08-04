@@ -185,7 +185,7 @@ tokens dentro da política, e o procedimento de recuperação possui evidência.
 
 - [x] PAR e outras extensões justificadas por threat model;
 - [x] passkeys/WebAuthn;
-- [ ] federação com provedores externos;
+- [x] federação com provedores externos;
 - [ ] provisionamento SCIM;
 - [ ] device authorization grant para dispositivos limitados;
 - [ ] políticas adaptativas de autenticação;

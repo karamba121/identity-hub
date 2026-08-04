@@ -1,5 +1,37 @@
 <app-page-breadcrumb pageTitle="Segurança da conta" />
 
+@if (federationProviders.length) {
+<div class="mb-6 rounded-2xl border border-gray-200 bg-white p-5 lg:p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+  <div class="mb-6">
+    <p class="mb-2 text-sm font-medium text-brand-500">OpenID Connect</p>
+    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Identidades externas</h3>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      Vincule explicitamente um provedor confiável. O Identity Hub usa o identificador estável do provedor e não associa contas existentes apenas pelo e-mail.
+    </p>
+  </div>
+  @for (provider of federationProviders; track provider.id) {
+    @if (!federationLinks.length) {
+      <button (click)="linkFederation(provider)" [disabled]="loading" class="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50">
+        Vincular {{ provider.displayName }}
+      </button>
+    }
+  }
+  @if (federationLinks.length) {
+    <div class="divide-y divide-gray-100 rounded-xl border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+      @for (link of federationLinks; track link.id) {
+        <div class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p class="font-medium text-gray-800 dark:text-white/90">{{ link.provider }}</p>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ link.emailAtLink }} · vinculado em {{ link.createdAt | date:'short' }}</p>
+          </div>
+          <button (click)="unlinkFederation(link)" [disabled]="loading" class="rounded-lg border border-error-500 px-3 py-2 text-sm font-medium text-error-500 disabled:opacity-50">Remover vínculo</button>
+        </div>
+      }
+    </div>
+  }
+</div>
+}
+
 <div class="mb-6 rounded-2xl border border-gray-200 bg-white p-5 lg:p-6 dark:border-gray-800 dark:bg-white/[0.03]">
   <div class="mb-6">
     <p class="mb-2 text-sm font-medium text-brand-500">WebAuthn</p>
@@ -110,7 +142,7 @@
 </div>
 
 <div class="mt-6 rounded-2xl border border-gray-200 bg-white p-5 lg:p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-  <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Atividade recente do MFA</h3>
+  <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Atividade recente de segurança</h3>
   <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
     Eventos de segurança desta identidade. Códigos, segredo e dados de autenticação não são registrados.
   </p>
@@ -137,6 +169,6 @@
       </table>
     </div>
   } @else {
-    <p class="mt-5 text-sm text-gray-500 dark:text-gray-400">Nenhum evento MFA registrado.</p>
+    <p class="mt-5 text-sm text-gray-500 dark:text-gray-400">Nenhum evento de segurança registrado.</p>
   }
 </div>

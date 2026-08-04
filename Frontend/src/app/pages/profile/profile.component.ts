@@ -6,6 +6,8 @@ import { switchMap } from 'rxjs';
 import { MfaApiService, MfaAuditEvent, MfaEnrollment, MfaStatus } from '../../core/services/mfa-api.service';
 import { PageBreadcrumbComponent } from '../../shared/components/common/page-breadcrumb/page-breadcrumb.component';
 import { PasskeyApiService, PasskeyView } from '../../core/services/passkey-api.service';
+import { ActivatedRoute } from '@angular/router';
+import { FederationApiService, FederatedIdentityLink, FederationProvider } from '../../core/services/federation-api.service';
 
 @Component({
   selector: 'app-profile',
@@ -28,14 +30,41 @@ export class ProfileComponent {
   auditEvents: MfaAuditEvent[] = [];
   passkeys: PasskeyView[] = [];
   passkeyLabel = '';
+  federationProviders: FederationProvider[] = [];
+  federationLinks: FederatedIdentityLink[] = [];
 
   constructor(
     private readonly mfa: MfaApiService,
     private readonly passkeyApi: PasskeyApiService,
+    private readonly federation: FederationApiService,
+    route: ActivatedRoute,
   ) {
     this.load();
     this.loadAudit();
     this.loadPasskeys();
+    this.loadFederation();
+    const federationResult = route.snapshot.queryParamMap.get('federation');
+    if (federationResult === 'linked') this.successMessage = 'Provedor externo vinculado.';
+    if (federationResult === 'error') this.errorMessage = 'Não foi possível vincular o provedor externo.';
+  }
+
+  loadFederation(): void {
+    this.federation.providers().subscribe({ next: providers => this.federationProviders = providers });
+    this.federation.links().subscribe({ next: links => this.federationLinks = links });
+  }
+
+  linkFederation(provider: FederationProvider): void {
+    if (this.loading) return;
+    window.location.assign(this.federation.linkUrl(provider.id));
+  }
+
+  unlinkFederation(link: FederatedIdentityLink): void {
+    if (this.loading || !window.confirm(`Remover o vínculo com ${link.provider}?`)) return;
+    this.run(() => this.federation.unlink(link.id), () => {
+      this.successMessage = 'Vínculo federado removido.';
+      this.loadFederation();
+      this.loadAudit();
+    });
   }
 
   loadAudit() {
@@ -155,6 +184,9 @@ export class ProfileComponent {
       PASSKEY_REGISTERED: 'Passkey cadastrada',
       PASSKEY_REMOVED: 'Passkey removida',
       PASSKEY_AUTHENTICATION_SUCCEEDED: 'Login com passkey',
+      FEDERATED_IDENTITY_LINKED: 'Provedor externo vinculado',
+      FEDERATED_IDENTITY_UNLINKED: 'Provedor externo removido',
+      FEDERATED_AUTHENTICATION_SUCCEEDED: 'Login federado',
     };
     return labels[eventType] ?? eventType;
   }

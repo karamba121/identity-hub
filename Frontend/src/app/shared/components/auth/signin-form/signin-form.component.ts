@@ -7,6 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { InteractionApiService } from '../../../../core/services/interaction-api.service';
 import { PasskeyApiService } from '../../../../core/services/passkey-api.service';
+import { FederationApiService, FederationProvider } from '../../../../core/services/federation-api.service';
 
 @Component({
   selector: 'app-signin-form',
@@ -29,15 +30,24 @@ export class SigninFormComponent {
   loading = false;
   awaitingMfa = false;
   mfaCode = '';
+  federationProviders: FederationProvider[] = [];
 
   constructor(
     private readonly route: ActivatedRoute,
     private readonly interactions: InteractionApiService,
     private readonly passkeys: PasskeyApiService,
+    private readonly federation: FederationApiService,
   ) {
     this.interactionId = this.route.snapshot.queryParamMap.get('interaction_id') ?? '';
+    this.federation.providers().subscribe({
+      next: providers => this.federationProviders = providers,
+    });
+    if (this.route.snapshot.queryParamMap.get('federation_error')) {
+      this.errorMessage = 'O provedor externo recusou o acesso ou não devolveu uma identidade válida.';
+    }
+    this.awaitingMfa = this.route.snapshot.queryParamMap.get('federated_mfa') === '1';
     if (!this.interactionId) {
-      this.errorMessage = 'Inicie o acesso pelo cliente demonstrativo.';
+      if (!this.errorMessage) this.errorMessage = 'Inicie o acesso pelo cliente demonstrativo.';
       return;
     }
     this.interactions.get(this.interactionId).subscribe({
@@ -50,6 +60,12 @@ export class SigninFormComponent {
       },
       error: () => this.errorMessage = 'A solicitação expirou ou não pertence a esta sessão.',
     });
+  }
+
+  onFederated(provider: FederationProvider): void {
+    if (!this.interactionId || this.loading) return;
+    this.loading = true;
+    window.location.assign(this.federation.loginUrl(this.interactionId, provider.id));
   }
 
   togglePasswordVisibility() {

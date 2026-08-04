@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -35,6 +36,7 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.server.authorization.JdbcOAuth2AuthorizationConsentService;
 import org.springframework.security.oauth2.server.authorization.JdbcOAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
@@ -91,6 +93,7 @@ import com.karamba121.backend.features.identity.ActiveIdentityWebAuthnAuthentica
 import com.karamba121.backend.features.identity.AuditedUserCredentialRepository;
 import com.karamba121.backend.features.identity.IdentitySecurityAuditor;
 import com.karamba121.backend.features.identity.PasskeyRateLimitFilter;
+import com.karamba121.backend.features.identity.FederationAuthenticationSuccessHandler;
 import com.karamba121.backend.features.access.RotatingClientSecretPasswordEncoder;
 import com.karamba121.backend.features.access.AdminResourceContract;
 import com.karamba121.backend.features.interaction.LoginInteractionEntryPoint;
@@ -203,6 +206,8 @@ public class SecurityConfig {
             IdentityUserDetailsService userDetailsService,
             SessionAuthenticationStrategy sessionAuthenticationStrategy,
             IdentitySecurityAuditor identityAuditor,
+            FederationAuthenticationSuccessHandler federationSuccessHandler,
+            ObjectProvider<ClientRegistrationRepository> federationRegistrations,
             IdentityHubProperties properties) throws Exception {
         CookieCsrfTokenRepository csrfRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         csrfRepository.setCookiePath("/");
@@ -214,6 +219,12 @@ public class SecurityConfig {
         http.authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/error", "/actuator/health/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/interactions/*").permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/interactions/*/federation/*", "/api/v1/federation/providers")
+                                .permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/oauth2/authorization/*", "/login/oauth2/code/*")
+                                .permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/interactions/*/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/interactions/*/mfa").permitAll()
                         .requestMatchers(HttpMethod.POST,
@@ -273,6 +284,12 @@ public class SecurityConfig {
                         }))
                 .addFilterBefore(passkeyRateLimitFilter, BasicAuthenticationFilter.class)
                 .addFilterBefore(metricsScrapeAuthenticationFilter, AnonymousAuthenticationFilter.class);
+        if (federationRegistrations.getIfAvailable() != null) {
+            http.oauth2Login(oauth2 -> oauth2
+                    .successHandler(federationSuccessHandler)
+                    .failureHandler((request, response, exception) ->
+                            federationSuccessHandler.onAuthenticationFailure(request, response)));
+        }
         return http.build();
     }
 

@@ -21,6 +21,16 @@
     }
 
     @if (!awaitingMfa) {
+    @for (provider of federationProviders; track provider.id) {
+      <button
+        type="button"
+        (click)="onFederated(provider)"
+        [disabled]="loading || !interactionId"
+        class="mb-3 inline-flex w-full items-center justify-center rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+      >
+        Continuar com {{ provider.displayName }}
+      </button>
+    }
     <button
       type="button"
       (click)="onPasskey()"
@@ -30,7 +40,7 @@
       Entrar com passkey
     </button>
     <div class="mb-6 flex items-center gap-3 text-xs uppercase tracking-wide text-gray-400">
-      <span class="h-px flex-1 bg-gray-200 dark:bg-gray-800"></span><span>ou use sua senha</span><span class="h-px flex-1 bg-gray-200 dark:bg-gray-800"></span>
+      <span class="h-px flex-1 bg-gray-200 dark:bg-gray-800"></span><span>ou use uma credencial local</span><span class="h-px flex-1 bg-gray-200 dark:bg-gray-800"></span>
     </div>
     <form (ngSubmit)="onSignIn()" class="space-y-6">
       <div>
@@ -101,7 +111,7 @@
     }
 
     <p class="mt-5 text-center text-xs text-gray-500 dark:text-gray-400">
-      Senhas e respostas da passkey são processadas somente pelo Identity Hub e pelo autenticador do dispositivo.
+      Senhas e respostas da passkey são processadas pelo Identity Hub; no acesso federado, o provedor confirma a identidade por OIDC.
     </p>
     <p class="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">
       Ainda não possui uma conta?

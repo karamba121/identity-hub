@@ -21,7 +21,7 @@ import com.karamba121.backend.features.abuse.RateLimitExceededException;
 public class IdentitySecurityAuditor {
 
     static final String TARGET_TYPE = "IDENTITY_USER";
-    private static final EnumSet<SecurityAuditEventType> MFA_EVENTS = EnumSet.of(
+    private static final EnumSet<SecurityAuditEventType> SECURITY_EVENTS = EnumSet.of(
             SecurityAuditEventType.MFA_ENROLLMENT_STARTED,
             SecurityAuditEventType.MFA_ENABLED,
             SecurityAuditEventType.MFA_RECOVERY_CODES_REGENERATED,
@@ -30,7 +30,10 @@ public class IdentitySecurityAuditor {
             SecurityAuditEventType.MFA_CHALLENGE_FAILED,
             SecurityAuditEventType.PASSKEY_REGISTERED,
             SecurityAuditEventType.PASSKEY_REMOVED,
-            SecurityAuditEventType.PASSKEY_AUTHENTICATION_SUCCEEDED);
+            SecurityAuditEventType.PASSKEY_AUTHENTICATION_SUCCEEDED,
+            SecurityAuditEventType.FEDERATED_IDENTITY_LINKED,
+            SecurityAuditEventType.FEDERATED_IDENTITY_UNLINKED,
+            SecurityAuditEventType.FEDERATED_AUTHENTICATION_SUCCEEDED);
 
     private final IdentityUserRepository users;
     private final SecurityAuditEventRepository events;
@@ -104,7 +107,7 @@ public class IdentitySecurityAuditor {
         return events.findAllByTargetTypeAndTargetIdAndEventTypeIn(
                 TARGET_TYPE,
                 userId,
-                MFA_EVENTS,
+                SECURITY_EVENTS,
                 PageRequest.of(
                         Math.max(page, 0),
                         Math.min(Math.max(size, 1), 50),

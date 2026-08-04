@@ -46,9 +46,9 @@ import jakarta.servlet.http.HttpServletResponse;
 @RequestMapping("/api/v1/interactions")
 public class InteractionController {
 
-    private static final String PENDING_MFA_AUTHENTICATION = "identity-hub.pending-mfa.authentication";
-    private static final String PENDING_MFA_INTERACTION = "identity-hub.pending-mfa.interaction";
-    private static final String PENDING_MFA_CREATED_AT = "identity-hub.pending-mfa.created-at";
+    public static final String PENDING_MFA_AUTHENTICATION = "identity-hub.pending-mfa.authentication";
+    public static final String PENDING_MFA_INTERACTION = "identity-hub.pending-mfa.interaction";
+    public static final String PENDING_MFA_CREATED_AT = "identity-hub.pending-mfa.created-at";
 
     private final SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder
             .getContextHolderStrategy();

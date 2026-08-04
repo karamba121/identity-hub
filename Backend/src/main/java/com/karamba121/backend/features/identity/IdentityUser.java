@@ -44,6 +44,9 @@ public class IdentityUser {
     @Column(name = "credential_version", nullable = false)
     private long credentialVersion;
 
+    @Column(name = "local_credentials_enabled", nullable = false)
+    private boolean localCredentialsEnabled;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -61,7 +64,15 @@ public class IdentityUser {
         this.passwordHash = passwordHash;
         this.enabled = true;
         this.emailVerified = emailVerified;
+        this.localCredentialsEnabled = true;
         this.createdAt = Instant.now();
+    }
+
+    public static IdentityUser federated(
+            String email, String displayName, String unusablePasswordHash) {
+        IdentityUser user = new IdentityUser(email, displayName, unusablePasswordHash, true);
+        user.localCredentialsEnabled = false;
+        return user;
     }
 
     public static IdentityUser pendingEmailVerification(
@@ -107,6 +118,10 @@ public class IdentityUser {
 
     public long getCredentialVersion() {
         return credentialVersion;
+    }
+
+    public boolean hasLocalCredentials() {
+        return localCredentialsEnabled;
     }
 
     public boolean isTemporarilyLocked(Instant now) {
@@ -156,6 +171,7 @@ public class IdentityUser {
             throw new IllegalArgumentException("Hash de senha é obrigatório");
         }
         this.passwordHash = passwordHash;
+        this.localCredentialsEnabled = true;
     }
 
     public void advanceCredentialVersion() {
