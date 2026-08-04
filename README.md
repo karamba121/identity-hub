@@ -406,6 +406,8 @@ fluxo completo de Client Credentials.
 O [guia de chaves de assinatura](docs/operations/signing-keys.md) diferencia a
 fonte efêmera local, o par PEM externo e a rotação planejada com publicação
 antecipada e retenção segura da chave anterior.
+O [procedimento de backup, restauração e retenção](docs/operations/backup-restore-and-audit-retention.md)
+define o baseline de recuperação e o expurgo controlado da auditoria.
 
 ## Licença
 

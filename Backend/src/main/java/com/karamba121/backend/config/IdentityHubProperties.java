@@ -13,6 +13,7 @@ public record IdentityHubProperties(
         PasswordRecovery passwordRecovery,
         LoginProtection loginProtection,
         AbuseProtection abuseProtection,
+        AuditRetention auditRetention,
         Bootstrap bootstrap) {
 
     public record Registration(
@@ -35,6 +36,14 @@ public record IdentityHubProperties(
             int originLimit,
             int combinationLimit,
             int maximumBuckets) {
+    }
+
+    public record AuditRetention(
+            boolean enabled,
+            Duration retention,
+            int batchSize,
+            Duration initialDelay,
+            Duration interval) {
     }
 
     public record Bootstrap(

@@ -173,7 +173,7 @@ o resource server rejeita tokens destinados a outra audience.
 - [x] implementar geração e rotação planejada de chaves;
 - [x] publicar chave atual e chaves anteriores durante janela segura;
 - [x] testar tokens emitidos antes, durante e após rotação;
-- [ ] definir backup, restauração e retenção de auditoria;
+- [x] definir backup, restauração e retenção de auditoria;
 - [ ] criar painéis e alertas para autenticação, erro e abuso;
 - [ ] executar testes de carga focados nos endpoints críticos;
 - [ ] documentar runbooks de incidente, rotação e recuperação.

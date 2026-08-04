@@ -58,7 +58,9 @@ a política explícita de retenção.
 - eventos precisam de versionamento compatível;
 - mascaramento de log será testado, não presumido;
 - acesso à auditoria será uma permissão separada;
-- exportação e retenção exigirão decisão operacional posterior.
+- a política inicial de retenção e recuperação foi definida na
+  [fatia 031](../vertical-slices/031-backup-restore-and-audit-retention.md);
+  exportação consultável e preservação legal automatizada continuam posteriores.
 
 ## Alternativas consideradas
 

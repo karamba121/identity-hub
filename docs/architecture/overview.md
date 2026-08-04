@@ -455,6 +455,13 @@ usam apenas o identificador interno da identidade como ator e alvo, permitem
 Segredo TOTP, OTP, códigos de recuperação, e-mail e payload não entram nessa
 trilha.
 
+A retenção online da auditoria é uma exceção controlada ao repositório
+append-only: um serviço operacional separado remove, em lotes e por corte UTC,
+somente eventos vencidos pela política. Ele nasce desabilitado, aceita períodos
+de 30 a 3650 dias e usa um índice global por `occurred_at` e `id`. O baseline do
+MVP mantém 365 dias online; backup lógico diário, restauração isolada e secrets
+externos seguem o [procedimento operacional](../operations/backup-restore-and-audit-retention.md).
+
 ## Estratégia de testes
 
 Cada fatia vertical deverá combinar:
