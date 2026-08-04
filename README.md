@@ -18,7 +18,7 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** vinte e nove fatias verticais executáveis. O repositório contém
+> **Estado atual:** trinta e duas fatias verticais executáveis. O repositório contém
 > Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
 > persistência PostgreSQL, tokens OIDC, um cliente público demonstrativo e uma
 > API protegida por issuer, audience e escopo. A terceira fatia acrescenta
@@ -80,7 +80,11 @@ context em um microsserviço artificial.
 > inválido, escopo excessivo e confusão entre audiences demonstrativa e
 > administrativa. O vigésimo nono extrai a origem das chaves de assinatura e
 > permite selecionar chave efêmera ou par RSA PEM externo por ambiente, com
-> validação criptográfica e falha fechada. O
+> validação criptográfica e falha fechada. O trigésimo incremento planeja e
+> exercita rotação de chaves com publicação antecipada e sobreposição segura. O
+> trigésimo primeiro define backup, restauração e retenção executável da
+> auditoria. O trigésimo segundo entrega coleta Prometheus autenticada, painel
+> Grafana e alertas para autenticação, erros, indisponibilidade e abuso. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 
@@ -408,6 +412,8 @@ fonte efêmera local, o par PEM externo e a rotação planejada com publicação
 antecipada e retenção segura da chave anterior.
 O [procedimento de backup, restauração e retenção](docs/operations/backup-restore-and-audit-retention.md)
 define o baseline de recuperação e o expurgo controlado da auditoria.
+O [guia de observabilidade](docs/operations/observability.md) descreve a coleta
+autenticada, o painel provisionado, os alertas e seus limites operacionais.
 
 ## Licença
 

@@ -174,6 +174,15 @@ class RefreshTokenLifecycleIntegrationTests {
 
         mockMvc.perform(get("/actuator/prometheus"))
                 .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/actuator/prometheus")
+                        .header("Authorization", "Bearer invalid-metrics-token-0123456789"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/actuator/prometheus")
+                        .header("Authorization", "Bearer test-metrics-token-0123456789abcdef"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString(
+                                "test-metrics-token-0123456789abcdef"))));
         mockMvc.perform(get("/actuator/prometheus").with(user("monitor")))
                 .andExpect(status().isOk())
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()

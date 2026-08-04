@@ -14,6 +14,7 @@ public record IdentityHubProperties(
         LoginProtection loginProtection,
         AbuseProtection abuseProtection,
         AuditRetention auditRetention,
+        Observability observability,
         Bootstrap bootstrap) {
 
     public record Registration(
@@ -44,6 +45,14 @@ public record IdentityHubProperties(
             int batchSize,
             Duration initialDelay,
             Duration interval) {
+    }
+
+    public record Observability(Metrics metrics) {
+    }
+
+    public record Metrics(
+            String token,
+            String tokenLocation) {
     }
 
     public record Bootstrap(

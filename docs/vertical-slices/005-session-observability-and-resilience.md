@@ -26,8 +26,9 @@ refresh token usado no fluxo.
 
 O endpoint não é público. `health` continua acessível para sondas, enquanto
 `/actuator/prometheus` exige autenticação pela cadeia de segurança da
-aplicação. A autenticação operacional definitiva ainda deve ser separada das
-contas de usuário antes de um deploy de produção.
+aplicação. A autenticação operacional dedicada por Bearer token externo foi
+entregue na fatia 032; o acesso por sessão continua disponível para diagnóstico
+manual autenticado.
 
 ## Invariantes e evidências
 
@@ -45,8 +46,8 @@ contas de usuário antes de um deploy de produção.
 
 - a indisponibilidade foi simulada na fronteira do repositório sobre o banco H2;
   uma queda real do PostgreSQL e sua recuperação ainda exigem teste operacional;
-- as métricas são locais ao processo e ainda não existe servidor Prometheus,
-  painel, regra de alerta ou retenção configurada neste repositório;
+- a coleta, o painel e as regras de alerta foram adicionados na fatia 032, mas
+  ainda precisam ser exercitados com tráfego e infraestrutura reais;
 - logs estruturados, traces OpenTelemetry e auditoria durável continuam itens
   separados do roadmap;
 - o comportamento de indisponibilidade de Redis será definido quando existir

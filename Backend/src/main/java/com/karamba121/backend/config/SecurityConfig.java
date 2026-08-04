@@ -52,6 +52,7 @@ import org.springframework.security.oauth2.server.authorization.token.OAuth2Toke
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.CompositeSessionAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.RegisterSessionAuthenticationStrategy;
@@ -167,7 +168,8 @@ public class SecurityConfig {
     @Order(4)
     SecurityFilterChain applicationSecurityFilterChain(
             HttpSecurity http,
-            SessionRegistry sessionRegistry) throws Exception {
+            SessionRegistry sessionRegistry,
+            MetricsScrapeAuthenticationFilter metricsScrapeAuthenticationFilter) throws Exception {
         CookieCsrfTokenRepository csrfRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         csrfRepository.setCookiePath("/");
         CsrfTokenRequestAttributeHandler csrfRequestHandler = new CsrfTokenRequestAttributeHandler();
@@ -191,7 +193,8 @@ public class SecurityConfig {
                         .maximumSessions(-1)
                         .sessionRegistry(sessionRegistry))
                 .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint(restAuthenticationEntryPoint()));
+                        .authenticationEntryPoint(restAuthenticationEntryPoint()))
+                .addFilterBefore(metricsScrapeAuthenticationFilter, AnonymousAuthenticationFilter.class);
         return http.build();
     }
 

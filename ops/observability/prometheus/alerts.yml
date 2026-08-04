@@ -1,0 +1,73 @@
+groups:
+  - name: identity-hub-availability
+    rules:
+      - alert: IdentityHubUnavailable
+        expr: up{job="identity-hub"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: Identity Hub indisponível para coleta
+          description: O Prometheus não coleta o backend há pelo menos 2 minutos.
+
+      - alert: IdentityHubHighServerErrorRate
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{job="identity-hub",status=~"5.."}[5m]))
+            /
+            clamp_min(sum(rate(http_server_requests_seconds_count{job="identity-hub"}[5m])), 0.001)
+          ) > 0.05
+          and sum(rate(http_server_requests_seconds_count{job="identity-hub"}[5m])) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          category: error
+        annotations:
+          summary: Taxa elevada de erros no Identity Hub
+          description: Mais de 5% das respostas são 5xx há 10 minutos, com tráfego relevante.
+
+  - name: identity-hub-authentication-and-abuse
+    rules:
+      - alert: IdentityHubAuthenticationFailureSpike
+        expr: |
+          sum(increase(http_server_requests_seconds_count{
+            job="identity-hub",
+            uri=~"/api/v1/interactions/\\{interactionId\\}/(login|mfa)|/oauth2/token",
+            status=~"400|401|403|429"
+          }[5m])) > 20
+        for: 5m
+        labels:
+          severity: warning
+          category: authentication
+        annotations:
+          summary: Pico de falhas de autenticação
+          description: Mais de 20 respostas rejeitadas em endpoints de autenticação nos últimos 5 minutos.
+
+      - alert: IdentityHubRateLimitRejectionSpike
+        expr: sum(increase(identity_hub_abuse_rate_limit_rejections_total[5m])) > 20
+        for: 5m
+        labels:
+          severity: warning
+          category: abuse
+        annotations:
+          summary: Pico de rejeições por rate limit
+          description: Mais de 20 bloqueios por sinais de abuso ocorreram nos últimos 5 minutos.
+
+      - alert: IdentityHubRefreshTokenReplayDetected
+        expr: sum(increase(identity_hub_session_refresh_events_total{event="replay_detected"}[5m])) > 0
+        labels:
+          severity: critical
+          category: abuse
+        annotations:
+          summary: Replay de refresh token detectado
+          description: Ao menos uma família de refresh token apresentou reutilização nos últimos 5 minutos.
+
+      - alert: IdentityHubAuditRetentionFailure
+        expr: sum(increase(identity_hub_audit_retention_failures_total[15m])) > 0
+        labels:
+          severity: warning
+          category: operation
+        annotations:
+          summary: Falha na retenção da auditoria
+          description: O expurgo controlado da auditoria falhou nos últimos 15 minutos.
