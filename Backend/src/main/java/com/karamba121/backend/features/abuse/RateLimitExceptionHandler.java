@@ -18,4 +18,12 @@ public class RateLimitExceptionHandler {
                 .header(HttpHeaders.RETRY_AFTER, Long.toString(exception.getRetryAfterSeconds()))
                 .body(problem);
     }
+
+    @ExceptionHandler(RateLimitBackendUnavailableException.class)
+    ResponseEntity<ProblemDetail> backendUnavailable() {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Proteção contra abuso temporariamente indisponível");
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(problem);
+    }
 }

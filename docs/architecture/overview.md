@@ -152,9 +152,12 @@ Limites importantes:
 
 ## Unidades de implantação
 
-O backend começa como uma aplicação Spring Boot única. Os módulos possuem
-fronteiras de código e propriedade de dados, mas compartilham processo,
-pipeline e banco PostgreSQL.
+O backend permanece uma única unidade Spring Boot, mas pode executar em duas ou
+mais réplicas equivalentes. Os módulos possuem fronteiras de código e
+propriedade de dados, compartilham pipeline e PostgreSQL e não dependem de
+afinidade no balanceador. Sessões HTTP e contadores de abuso usam Redis; chaves
+de assinatura e a chave de proteção MFA precisam ser idênticas em todas as
+réplicas.
 
 O frontend Angular é um artefato estático separado e concentra três superfícies
 lógicas: interação do servidor de autorização, administração e cliente
@@ -400,6 +403,12 @@ Redis poderá armazenar:
 - desafios ou estados efêmeros com TTL;
 - dados revogáveis de sessão;
 - caches reconstruíveis.
+
+Na topologia com múltiplas réplicas, Redis armazena as sessões Spring indexadas
+por principal e executa atomicamente os limites combinados de sujeito, origem e
+par. A invalidação de credencial remove sessões de todas as réplicas. Perda do
+Redis não autoriza fallback local: login e demais operações limitadas falham
+fechadas, e a readiness fica indisponível até a recuperação.
 
 Uma indisponibilidade do Redis deve produzir comportamento fail-safe definido
 por caso de uso. Nenhum fluxo crítico pode conceder acesso porque o cache não

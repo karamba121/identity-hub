@@ -18,7 +18,7 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** trinta e oito fatias verticais executáveis. O repositório contém
+> **Estado atual:** quarenta e uma fatias verticais executáveis. O repositório contém
 > Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
 > persistência PostgreSQL, tokens OIDC, um cliente público demonstrativo e uma
 > API protegida por issuer, audience e escopo. A terceira fatia acrescenta
@@ -102,15 +102,23 @@ context em um microsserviço artificial.
 > associação silenciosa somente pelo e-mail. O trigésimo oitavo incremento
 > entrega provisionamento SCIM 2.0 de usuários por tenant, autenticado por
 > Client Credentials com scopes e audience próprios, sem importar papéis ou
-> desabilitar a identidade em outros tenants. O
+> desabilitar a identidade em outros tenants. O trigésimo nono incremento
+> registra dispositivos conhecidos, permite revogá-los e os usa como sinal de
+> risco. O quadragésimo aplica autenticação adaptativa a partir de dispositivo,
+> origem e falhas recentes, exigindo MFA quando o risco ultrapassa a política.
+> O quadragésimo primeiro prepara execução com múltiplas réplicas: compartilha
+> sessões e rate limiting no Redis, exige chaves de assinatura externas comuns
+> e inclui um ensaio de caos reproduzível para failover e falha fechada. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 
 ## Executar a primeira fatia com Docker Compose
 
-O Compose da raiz constrói e inicia conjuntamente o frontend, o backend e o
-PostgreSQL. O Nginx do frontend serve a SPA e encaminha os endpoints OAuth/OIDC
-ao backend pela rede interna; somente a porta HTTP do frontend é publicada.
+O Compose da raiz constrói e inicia conjuntamente o frontend, o backend, o
+PostgreSQL e o Redis. O Nginx do frontend serve a SPA e encaminha os endpoints
+OAuth/OIDC ao backend pela rede interna; somente a porta HTTP do frontend é
+publicada. O perfil direto de desenvolvimento mantém sessão e proteção de abuso
+em memória; o Compose exercita os armazenamentos compartilhados.
 
 Em PowerShell:
 
@@ -140,6 +148,9 @@ padrão. Não use `docker compose down -v` se quiser manter os dados.
 O arquivo `.env` é ignorado pelo Git. Não versione senhas reais. O volume
 `identity_hub_postgres_data` é exclusivo deste deploy conjunto e não reutiliza
 automaticamente volumes criados pela versão anterior do Compose.
+
+Para executar duas réplicas e o cenário automatizado de failover, consulte o
+[guia de alta disponibilidade](docs/operations/high-availability.md).
 
 ## Executar a primeira fatia para desenvolvimento
 

@@ -13,6 +13,8 @@ import org.springframework.security.oauth2.server.authorization.client.Registere
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+import com.karamba121.backend.features.access.AdministrativeBootstrapLockRepository;
 import com.karamba121.backend.features.access.FirstAdministratorBootstrapService;
 import com.karamba121.backend.features.access.AdminResourceContract;
 import com.karamba121.backend.features.access.TenantOAuthClient;
@@ -22,28 +24,36 @@ import com.karamba121.backend.features.tenancy.TenantRepository;
 @Component
 public class DevelopmentBootstrap implements ApplicationRunner {
 
+    private static final String BOOTSTRAP_LOCK = "first-administrator";
+
     private final IdentityHubProperties properties;
     private final RegisteredClientRepository clients;
     private final FirstAdministratorBootstrapService firstAdministratorBootstrap;
     private final TenantOAuthClientRepository clientOwnerships;
     private final TenantRepository tenants;
+    private final AdministrativeBootstrapLockRepository bootstrapLocks;
 
     public DevelopmentBootstrap(
             IdentityHubProperties properties,
             RegisteredClientRepository clients,
             FirstAdministratorBootstrapService firstAdministratorBootstrap,
             TenantOAuthClientRepository clientOwnerships,
-            TenantRepository tenants) {
+            TenantRepository tenants,
+            AdministrativeBootstrapLockRepository bootstrapLocks) {
         this.properties = properties;
         this.clients = clients;
         this.firstAdministratorBootstrap = firstAdministratorBootstrap;
         this.clientOwnerships = clientOwnerships;
         this.tenants = tenants;
+        this.bootstrapLocks = bootstrapLocks;
     }
 
     @Override
+    @Transactional
     public void run(ApplicationArguments args) {
         IdentityHubProperties.Bootstrap bootstrap = properties.bootstrap();
+        bootstrapLocks.findByLockNameForUpdate(BOOTSTRAP_LOCK)
+                .orElseThrow(() -> new IllegalStateException("Lock do bootstrap administrativo não encontrado"));
         RegisteredClient existingClient = clients.findByClientId(bootstrap.clientId());
         if (!bootstrap.enabled()) {
             if (existingClient != null) {

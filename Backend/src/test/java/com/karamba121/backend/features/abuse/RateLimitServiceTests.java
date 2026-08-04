@@ -2,6 +2,10 @@ package com.karamba121.backend.features.abuse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -9,6 +13,9 @@ import java.time.Instant;
 import java.time.ZoneId;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.data.redis.RedisConnectionFailureException;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.RedisScript;
 
 import com.karamba121.backend.config.IdentityHubProperties;
 
@@ -89,6 +96,40 @@ class RateLimitServiceTests {
                 .count()).isEqualTo(1);
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    void mapsAtomicRedisRejectionsAndFailsClosedWhenRedisIsUnavailable() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        when(redis.execute(
+                any(RedisScript.class),
+                anyList(),
+                any(), any(), any(), any(), any(), any()))
+                .thenReturn("3:59000")
+                .thenThrow(new RedisConnectionFailureException("offline"));
+        SimpleMeterRegistry metrics = new SimpleMeterRegistry();
+        RateLimitService limiter = new RateLimitService(
+                new IdentityHubProperties.AbuseProtection(
+                        "redis", Duration.ofMinutes(1), 3, 5, 2, 100),
+                metrics,
+                new MutableClock(),
+                redis);
+
+        assertThatThrownBy(() -> limiter.check(
+                RateLimitedOperation.LOGIN, "person@example.test", "192.0.2.10"))
+                .isInstanceOf(RateLimitExceededException.class)
+                .satisfies(exception -> assertThat(((RateLimitExceededException) exception)
+                        .getRetryAfterSeconds()).isEqualTo(59));
+        assertThat(metrics.get(RateLimitService.REJECTION_METRIC)
+                .tag("operation", "login")
+                .tag("signal", "combination")
+                .counter().count()).isEqualTo(1);
+
+        assertThatThrownBy(() -> limiter.check(
+                RateLimitedOperation.LOGIN, "person@example.test", "192.0.2.10"))
+                .isInstanceOf(RateLimitBackendUnavailableException.class);
+        assertThat(metrics.get(RateLimitService.BACKEND_FAILURE_METRIC).counter().count()).isEqualTo(1);
+    }
+
     private static RateLimitService limiter(
             SimpleMeterRegistry metrics,
             MutableClock clock,
@@ -98,6 +139,7 @@ class RateLimitServiceTests {
             int maximumBuckets) {
         return new RateLimitService(
                 new IdentityHubProperties.AbuseProtection(
+                        "memory",
                         Duration.ofMinutes(1),
                         subjectLimit,
                         originLimit,

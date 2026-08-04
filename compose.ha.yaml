@@ -1,0 +1,17 @@
+services:
+  backend:
+    ports: !reset []
+    deploy:
+      replicas: ${IDENTITY_HUB_BACKEND_REPLICAS:-2}
+    environment:
+      IDENTITY_HUB_SIGNING_KEY_SOURCE: pem
+      IDENTITY_HUB_SIGNING_PRIVATE_KEY_LOCATION: file:/run/secrets/identity-hub-signing-private.pem
+      IDENTITY_HUB_SIGNING_PUBLIC_KEY_LOCATION: file:/run/secrets/identity-hub-signing-public.pem
+    volumes:
+      - ${IDENTITY_HUB_HA_PRIVATE_KEY_FILE:?Defina IDENTITY_HUB_HA_PRIVATE_KEY_FILE}:/run/secrets/identity-hub-signing-private.pem:ro
+      - ${IDENTITY_HUB_HA_PUBLIC_KEY_FILE:?Defina IDENTITY_HUB_HA_PUBLIC_KEY_FILE}:/run/secrets/identity-hub-signing-public.pem:ro
+
+  frontend:
+    depends_on:
+      backend:
+        condition: service_started

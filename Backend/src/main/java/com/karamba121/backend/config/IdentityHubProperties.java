@@ -35,6 +35,7 @@ public record IdentityHubProperties(
     }
 
     public record AbuseProtection(
+            String store,
             Duration window,
             int subjectLimit,
             int originLimit,

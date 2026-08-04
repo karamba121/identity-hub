@@ -31,7 +31,7 @@ Este roadmap organiza o Identity Hub em fatias verticais demonstráveis. Ele nã
 - [x] configurar Spring Security e Spring Authorization Server;
 - [ ] definir módulos, regras de dependência e testes arquiteturais;
 - [x] configurar PostgreSQL e execução local com Docker Compose;
-- [ ] adicionar Redis junto ao primeiro fluxo efêmero que justifique seu uso;
+- [x] adicionar Redis junto ao primeiro fluxo efêmero que justifique seu uso;
 - [x] criar migrações versionadas e dados de desenvolvimento restritos ao
   perfil `dev`;
 - [x] disponibilizar health e readiness pelo Actuator;
@@ -190,7 +190,7 @@ tokens dentro da política, e o procedimento de recuperação possui evidência.
 - [x] device authorization grant para dispositivos limitados;
 - [x] políticas adaptativas de autenticação;
 - [ ] issuer por tenant, apenas se houver requisito comprovado;
-- [ ] implantação altamente disponível e testes de caos;
+- [x] implantação altamente disponível e testes de caos;
 - [ ] avaliação de extração de módulos, apenas com evidência operacional.
 
 ## Definição de pronto

@@ -37,6 +37,7 @@ declare qual registro foi substituído.
 | [017](017-scim-user-provisioning.md) | Provisionamento SCIM isolado por tenant | Aceito |
 | [018](018-device-authorization-grant.md) | Device Authorization Grant com consentimento no navegador | Aceito |
 | [019](019-adaptive-authentication-policies.md) | Step-up adaptativo para autenticação por senha | Aceito |
+| [020](020-high-availability-and-chaos.md) | Réplicas stateless com sessão e abuso compartilhados | Aceito |
 
 ## Template
 
