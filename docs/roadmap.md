@@ -184,7 +184,7 @@ tokens dentro da política, e o procedimento de recuperação possui evidência.
 ## Fase 9 — Evoluções pós-MVP
 
 - [x] PAR e outras extensões justificadas por threat model;
-- [ ] passkeys/WebAuthn;
+- [x] passkeys/WebAuthn;
 - [ ] federação com provedores externos;
 - [ ] provisionamento SCIM;
 - [ ] device authorization grant para dispositivos limitados;

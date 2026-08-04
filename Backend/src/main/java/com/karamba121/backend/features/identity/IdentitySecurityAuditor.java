@@ -27,7 +27,10 @@ public class IdentitySecurityAuditor {
             SecurityAuditEventType.MFA_RECOVERY_CODES_REGENERATED,
             SecurityAuditEventType.MFA_DISABLED,
             SecurityAuditEventType.MFA_CHALLENGE_SUCCEEDED,
-            SecurityAuditEventType.MFA_CHALLENGE_FAILED);
+            SecurityAuditEventType.MFA_CHALLENGE_FAILED,
+            SecurityAuditEventType.PASSKEY_REGISTERED,
+            SecurityAuditEventType.PASSKEY_REMOVED,
+            SecurityAuditEventType.PASSKEY_AUTHENTICATION_SUCCEEDED);
 
     private final IdentityUserRepository users;
     private final SecurityAuditEventRepository events;

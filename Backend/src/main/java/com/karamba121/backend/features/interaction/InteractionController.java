@@ -18,6 +18,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
+import org.springframework.security.core.authority.FactorGrantedAuthority;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.security.web.context.SecurityContextRepository;
@@ -170,6 +171,24 @@ public class InteractionController {
         }
         clearPendingMfa(request);
         completeAuthentication(authentication, interaction, request, response);
+        return new LoginResult(interaction.getResumeUri(), false);
+    }
+
+    @PostMapping("/{interactionId}/passkey")
+    @ResponseBody
+    public LoginResult completePasskey(
+            @PathVariable String interactionId,
+            Authentication authentication,
+            HttpServletRequest request) {
+        AuthorizationInteraction interaction = interactions.resolvePending(
+                interactionId, request, InteractionType.LOGIN);
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication.getAuthorities().stream().noneMatch(authority ->
+                        FactorGrantedAuthority.WEBAUTHN_AUTHORITY.equals(authority.getAuthority()))) {
+            throw new InteractionException(HttpStatus.UNAUTHORIZED, "Autenticação por passkey obrigatória");
+        }
+        clearPendingMfa(request);
+        interactions.completeLogin(interaction, request.getSession(false).getId());
         return new LoginResult(interaction.getResumeUri(), false);
     }
 

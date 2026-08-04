@@ -14,6 +14,7 @@ import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.config.ObjectPostProcessor;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -52,6 +53,7 @@ import org.springframework.security.oauth2.server.authorization.token.OAuth2Toke
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.CompositeSessionAuthenticationStrategy;
@@ -63,15 +65,32 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.session.SessionRegistryImpl;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.security.web.webauthn.api.AuthenticatorSelectionCriteria;
+import org.springframework.security.web.webauthn.api.PublicKeyCredentialRpEntity;
+import org.springframework.security.web.webauthn.api.ResidentKeyRequirement;
+import org.springframework.security.web.webauthn.api.UserVerificationRequirement;
+import org.springframework.security.web.webauthn.authentication.WebAuthnAuthenticationFilter;
+import org.springframework.security.web.webauthn.management.JdbcPublicKeyCredentialUserEntityRepository;
+import org.springframework.security.web.webauthn.management.JdbcUserCredentialRepository;
+import org.springframework.security.web.webauthn.management.PublicKeyCredentialUserEntityRepository;
+import org.springframework.security.web.webauthn.management.UserCredentialRepository;
+import org.springframework.security.web.webauthn.management.WebAuthnRelyingPartyOperations;
+import org.springframework.security.web.webauthn.management.Webauthn4JRelyingPartyOperations;
+import org.springframework.security.web.webauthn.registration.WebAuthnRegistrationFilter;
 
 import com.karamba121.backend.features.identity.IdentityUserDetailsService;
 import com.karamba121.backend.features.identity.IdentityUserRepository;
 import com.karamba121.backend.features.identity.LoginAttemptService;
 import com.karamba121.backend.features.identity.LoginProtectionAuthenticationProvider;
 import com.karamba121.backend.features.identity.NormalizingPasswordEncoder;
+import com.karamba121.backend.features.identity.ActiveIdentityWebAuthnAuthenticationProvider;
+import com.karamba121.backend.features.identity.AuditedUserCredentialRepository;
+import com.karamba121.backend.features.identity.IdentitySecurityAuditor;
+import com.karamba121.backend.features.identity.PasskeyRateLimitFilter;
 import com.karamba121.backend.features.access.RotatingClientSecretPasswordEncoder;
 import com.karamba121.backend.features.access.AdminResourceContract;
 import com.karamba121.backend.features.interaction.LoginInteractionEntryPoint;
@@ -176,16 +195,29 @@ public class SecurityConfig {
     SecurityFilterChain applicationSecurityFilterChain(
             HttpSecurity http,
             SessionRegistry sessionRegistry,
-            MetricsScrapeAuthenticationFilter metricsScrapeAuthenticationFilter) throws Exception {
+            MetricsScrapeAuthenticationFilter metricsScrapeAuthenticationFilter,
+            PasskeyRateLimitFilter passkeyRateLimitFilter,
+            WebAuthnRelyingPartyOperations relyingParty,
+            UserCredentialRepository credentials,
+            PublicKeyCredentialUserEntityRepository credentialUsers,
+            IdentityUserDetailsService userDetailsService,
+            SessionAuthenticationStrategy sessionAuthenticationStrategy,
+            IdentitySecurityAuditor identityAuditor,
+            IdentityHubProperties properties) throws Exception {
         CookieCsrfTokenRepository csrfRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         csrfRepository.setCookiePath("/");
         CsrfTokenRequestAttributeHandler csrfRequestHandler = new CsrfTokenRequestAttributeHandler();
+        AuthenticationProvider webAuthnAuthenticationProvider =
+                new ActiveIdentityWebAuthnAuthenticationProvider(
+                        relyingParty, credentials, credentialUsers, userDetailsService);
 
         http.authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/error", "/actuator/health/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/interactions/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/interactions/*/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/interactions/*/mfa").permitAll()
+                        .requestMatchers(HttpMethod.POST,
+                                "/webauthn/authenticate/options", "/login/webauthn").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/registrations/csrf").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/registrations", "/api/v1/registrations/verify")
                                 .permitAll()
@@ -201,6 +233,45 @@ public class SecurityConfig {
                         .sessionRegistry(sessionRegistry))
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(restAuthenticationEntryPoint()))
+                .webAuthn(webAuthn -> webAuthn
+                        .rpId(properties.webauthn().rpId())
+                        .rpName(properties.webauthn().rpName())
+                        .allowedOrigins(properties.webauthn().allowedOrigins())
+                        .disableDefaultRegistrationPage(true)
+                        .withObjectPostProcessor(new ObjectPostProcessor<WebAuthnAuthenticationFilter>() {
+                            @Override
+                            public <O extends WebAuthnAuthenticationFilter> O postProcess(O filter) {
+                                filter.setAuthenticationManager(new ProviderManager(webAuthnAuthenticationProvider));
+                                filter.setSessionAuthenticationStrategy(sessionAuthenticationStrategy);
+                                filter.setAuthenticationSuccessHandler((request, response, authentication) -> {
+                                    try {
+                                        identityAuditor.execute(
+                                                authentication.getName(),
+                                                com.karamba121.backend.features.access.SecurityAuditEventType
+                                                        .PASSKEY_AUTHENTICATION_SUCCEEDED,
+                                                () -> authentication);
+                                        response.setStatus(HttpStatus.OK.value());
+                                    } catch (RuntimeException exception) {
+                                        SecurityContextHolder.clearContext();
+                                        if (request.getSession(false) != null) {
+                                            request.getSession(false).invalidate();
+                                        }
+                                        response.sendError(
+                                                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                                                "Não foi possível concluir a autenticação");
+                                    }
+                                });
+                                return filter;
+                            }
+                        })
+                        .withObjectPostProcessor(new ObjectPostProcessor<WebAuthnRegistrationFilter>() {
+                            @Override
+                            public <O extends WebAuthnRegistrationFilter> O postProcess(O filter) {
+                                filter.setRemoveCredentialMatcher(request -> false);
+                                return filter;
+                            }
+                        }))
+                .addFilterBefore(passkeyRateLimitFilter, BasicAuthenticationFilter.class)
                 .addFilterBefore(metricsScrapeAuthenticationFilter, AnonymousAuthenticationFilter.class);
         return http.build();
     }
@@ -213,6 +284,50 @@ public class SecurityConfig {
     @Bean
     RegisteredClientRepository registeredClientRepository(JdbcOperations jdbcOperations) {
         return new JdbcRegisteredClientRepository(jdbcOperations);
+    }
+
+    @Bean
+    PublicKeyCredentialUserEntityRepository publicKeyCredentialUserEntityRepository(
+            JdbcOperations jdbcOperations) {
+        return new JdbcPublicKeyCredentialUserEntityRepository(jdbcOperations);
+    }
+
+    @Bean
+    UserCredentialRepository userCredentialRepository(
+            JdbcOperations jdbcOperations,
+            PublicKeyCredentialUserEntityRepository users,
+            IdentitySecurityAuditor auditor) {
+        return new AuditedUserCredentialRepository(
+                new JdbcUserCredentialRepository(jdbcOperations), users, auditor);
+    }
+
+    @Bean
+    WebAuthnRelyingPartyOperations webAuthnRelyingPartyOperations(
+            PublicKeyCredentialUserEntityRepository users,
+            UserCredentialRepository credentials,
+            IdentityHubProperties properties) {
+        IdentityHubProperties.WebAuthn settings = properties.webauthn();
+        if (settings == null || settings.rpId() == null || settings.rpId().isBlank()
+                || settings.rpName() == null || settings.rpName().isBlank()
+                || settings.allowedOrigins() == null || settings.allowedOrigins().isEmpty()) {
+            throw new IllegalStateException("Configuração WebAuthn incompleta");
+        }
+        Webauthn4JRelyingPartyOperations relyingParty = new Webauthn4JRelyingPartyOperations(
+                users,
+                credentials,
+                PublicKeyCredentialRpEntity.builder()
+                        .id(settings.rpId())
+                        .name(settings.rpName())
+                        .build(),
+                settings.allowedOrigins());
+        relyingParty.setCustomizeCreationOptions(options -> options.authenticatorSelection(
+                AuthenticatorSelectionCriteria.builder()
+                        .residentKey(ResidentKeyRequirement.REQUIRED)
+                        .userVerification(UserVerificationRequirement.REQUIRED)
+                        .build()));
+        relyingParty.setCustomizeRequestOptions(options -> options
+                .userVerification(UserVerificationRequirement.REQUIRED));
+        return relyingParty;
     }
 
     @Bean

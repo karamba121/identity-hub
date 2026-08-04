@@ -6,6 +6,7 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { InteractionApiService } from '../../../../core/services/interaction-api.service';
+import { PasskeyApiService } from '../../../../core/services/passkey-api.service';
 
 @Component({
   selector: 'app-signin-form',
@@ -32,6 +33,7 @@ export class SigninFormComponent {
   constructor(
     private readonly route: ActivatedRoute,
     private readonly interactions: InteractionApiService,
+    private readonly passkeys: PasskeyApiService,
   ) {
     this.interactionId = this.route.snapshot.queryParamMap.get('interaction_id') ?? '';
     if (!this.interactionId) {
@@ -96,5 +98,20 @@ export class SigninFormComponent {
           : 'Código do autenticador ou de recuperação inválido.';
       },
     });
+  }
+
+  async onPasskey(): Promise<void> {
+    if (!this.interactionId || this.loading) return;
+    this.loading = true;
+    this.errorMessage = '';
+    try {
+      const result = await this.passkeys.authenticate(this.interactionId);
+      if (result.continueUrl) window.location.assign(result.continueUrl);
+    } catch (error) {
+      this.loading = false;
+      this.errorMessage = error instanceof Error && error.message.includes('conexão segura')
+        ? error.message
+        : 'A passkey foi recusada, cancelada ou não pertence a uma conta ativa.';
+    }
   }
 }

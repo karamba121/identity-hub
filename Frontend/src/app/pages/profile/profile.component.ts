@@ -5,6 +5,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { switchMap } from 'rxjs';
 import { MfaApiService, MfaAuditEvent, MfaEnrollment, MfaStatus } from '../../core/services/mfa-api.service';
 import { PageBreadcrumbComponent } from '../../shared/components/common/page-breadcrumb/page-breadcrumb.component';
+import { PasskeyApiService, PasskeyView } from '../../core/services/passkey-api.service';
 
 @Component({
   selector: 'app-profile',
@@ -25,10 +26,16 @@ export class ProfileComponent {
   errorMessage = '';
   successMessage = '';
   auditEvents: MfaAuditEvent[] = [];
+  passkeys: PasskeyView[] = [];
+  passkeyLabel = '';
 
-  constructor(private readonly mfa: MfaApiService) {
+  constructor(
+    private readonly mfa: MfaApiService,
+    private readonly passkeyApi: PasskeyApiService,
+  ) {
     this.load();
     this.loadAudit();
+    this.loadPasskeys();
   }
 
   loadAudit() {
@@ -41,6 +48,42 @@ export class ProfileComponent {
     this.mfa.status().subscribe({
       next: status => this.status = status,
       error: () => this.errorMessage = 'Autentique-se no Identity Hub para gerenciar a segurança da conta.',
+    });
+  }
+
+  loadPasskeys() {
+    this.passkeyApi.list().subscribe({
+      next: passkeys => this.passkeys = passkeys,
+      error: () => this.errorMessage = 'Autentique-se no Identity Hub para gerenciar as passkeys.',
+    });
+  }
+
+  async registerPasskey(): Promise<void> {
+    if (this.loading || this.passkeyLabel.trim().length > 80) return;
+    this.loading = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+    try {
+      await this.passkeyApi.register(this.passkeyLabel);
+      this.loading = false;
+      this.passkeyLabel = '';
+      this.successMessage = 'Passkey cadastrada. Ela já pode ser usada no próximo login.';
+      this.loadPasskeys();
+      this.loadAudit();
+    } catch (error) {
+      this.loading = false;
+      this.errorMessage = error instanceof Error && error.message.includes('conexão segura')
+        ? error.message
+        : 'O cadastro da passkey foi cancelado ou recusado pelo autenticador.';
+    }
+  }
+
+  removePasskey(passkey: PasskeyView): void {
+    if (this.loading || !window.confirm(`Remover a passkey “${passkey.label}”?`)) return;
+    this.run(() => this.passkeyApi.remove(passkey.id), () => {
+      this.successMessage = 'Passkey removida.';
+      this.loadPasskeys();
+      this.loadAudit();
     });
   }
 
@@ -109,6 +152,9 @@ export class ProfileComponent {
       MFA_DISABLED: 'MFA desabilitado',
       MFA_CHALLENGE_SUCCEEDED: 'Desafio aceito',
       MFA_CHALLENGE_FAILED: 'Desafio recusado',
+      PASSKEY_REGISTERED: 'Passkey cadastrada',
+      PASSKEY_REMOVED: 'Passkey removida',
+      PASSKEY_AUTHENTICATION_SUCCEEDED: 'Login com passkey',
     };
     return labels[eventType] ?? eventType;
   }

@@ -47,6 +47,7 @@ class MetricsScrapeTokenTests {
                 null, null, null, null, null, null, null, null,
                 new IdentityHubProperties.Observability(
                         new IdentityHubProperties.Metrics(inline, location)),
+                null,
                 null);
         return new MetricsScrapeToken(properties, new DefaultResourceLoader());
     }

@@ -18,7 +18,7 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** trinta e cinco fatias verticais executáveis. O repositório contém
+> **Estado atual:** trinta e seis fatias verticais executáveis. O repositório contém
 > Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
 > persistência PostgreSQL, tokens OIDC, um cliente público demonstrativo e uma
 > API protegida por issuer, audience e escopo. A terceira fatia acrescenta
@@ -92,7 +92,10 @@ context em um microsserviço artificial.
 > trigésimo quinto inicia as evoluções pós-MVP com PAR: os parâmetros do pedido
 > de autorização são validados e persistidos no back channel, enquanto o
 > navegador recebe apenas uma referência curta, vinculada ao cliente,
-> expirável e de uso único. O
+> expirável e de uso único. A trigésima sexta entrega passkeys WebAuthn com
+> verificação do usuário obrigatória, login sem senha, cadastro e remoção no
+> perfil e auditoria das operações, mantendo no servidor somente a chave
+> pública da credencial. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 
@@ -190,6 +193,7 @@ O projeto deve comprovar:
 - OAuth 2.0 e OpenID Connect 1.0;
 - Authorization Code com PKCE obrigatório para clientes públicos;
 - Pushed Authorization Requests (PAR) com referência curta e de uso único;
+- passkeys WebAuthn para login sem senha e verificação local do usuário;
 - Client Credentials para integrações serviço a serviço;
 - refresh token com rotação e detecção de reutilização;
 - revogação e introspecção quando aplicável ao tipo de token;
@@ -401,6 +405,7 @@ identity-hub/
 - [OAuth 2.0 Authorization Framework — RFC 6749](https://www.rfc-editor.org/rfc/rfc6749)
 - [PKCE — RFC 7636](https://www.rfc-editor.org/rfc/rfc7636)
 - [Pushed Authorization Requests — RFC 9126](https://www.rfc-editor.org/rfc/rfc9126)
+- [Web Authentication Level 2 — W3C Recommendation](https://www.w3.org/TR/webauthn-2/)
 - [OAuth 2.0 Security Best Current Practice — RFC 9700](https://www.rfc-editor.org/rfc/rfc9700)
 - [OAuth 2.0 Authorization Server Metadata — RFC 8414](https://www.rfc-editor.org/rfc/rfc8414)
 - [OAuth 2.0 Token Revocation — RFC 7009](https://www.rfc-editor.org/rfc/rfc7009)

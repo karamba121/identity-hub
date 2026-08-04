@@ -1,6 +1,7 @@
 package com.karamba121.backend.config;
 
 import java.time.Duration;
+import java.util.Set;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -15,6 +16,7 @@ public record IdentityHubProperties(
         AbuseProtection abuseProtection,
         AuditRetention auditRetention,
         Observability observability,
+        WebAuthn webauthn,
         Bootstrap bootstrap) {
 
     public record Registration(
@@ -53,6 +55,12 @@ public record IdentityHubProperties(
     public record Metrics(
             String token,
             String tokenLocation) {
+    }
+
+    public record WebAuthn(
+            String rpId,
+            String rpName,
+            Set<String> allowedOrigins) {
     }
 
     public record Bootstrap(
