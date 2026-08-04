@@ -176,7 +176,7 @@ o resource server rejeita tokens destinados a outra audience.
 - [x] definir backup, restauração e retenção de auditoria;
 - [x] criar painéis e alertas para autenticação, erro e abuso;
 - [x] executar testes de carga focados nos endpoints críticos;
-- [ ] documentar runbooks de incidente, rotação e recuperação.
+- [x] documentar runbooks de incidente, rotação e recuperação.
 
 **Critério de aceite:** uma rotação exercitada não invalida prematuramente
 tokens dentro da política, e o procedimento de recuperação possui evidência.

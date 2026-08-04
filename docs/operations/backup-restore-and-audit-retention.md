@@ -120,3 +120,7 @@ antes do próximo ciclo e registre formalmente o início e o fim da suspensão.
 - retenção de logs, métricas e traces é separada da auditoria persistida;
 - exportação consultável de auditoria e automação de preservação legal não foram
   implementadas.
+
+Durante indisponibilidade ou corrupção real, use o
+[runbook de recuperação](../runbooks/recovery.md), que acrescenta contenção,
+validação do candidato, corte e condição de retorno a esta política.

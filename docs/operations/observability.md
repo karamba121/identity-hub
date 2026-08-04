@@ -71,3 +71,6 @@ o mesmo arquivo secreto montado e, depois, verifique a saúde do backend. Evite
 imprimir o conteúdo do arquivo em logs ou comandos de diagnóstico. Troque a
 credencial substituindo o arquivo e recriando backend e Prometheus na mesma
 janela; não existe período de sobreposição para o token de coleta.
+
+Ao confirmar um alerta, continue pelo
+[runbook de resposta a incidente](../runbooks/incident-response.md).

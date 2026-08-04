@@ -51,4 +51,4 @@ não pertence ao workload e nenhum servidor SMTP é provisionado pelo Compose.
 - token, refresh token, resource server, soak, stress e capacidade máxima não
   foram medidos por esta fatia;
 - os thresholds ainda precisam ser calibrados com volume e SLOs reais;
-- runbooks de incidente, rotação e recuperação são a próxima etapa sequencial.
+- runbooks de incidente, rotação e recuperação foram entregues na fatia 034.

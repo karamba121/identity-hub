@@ -18,7 +18,7 @@ oferecer OAuth 2.0, OpenID Connect e um perfil de segurança alinhado às
 recomendações modernas associadas ao OAuth 2.1, sem transformar cada bounded
 context em um microsserviço artificial.
 
-> **Estado atual:** trinta e três fatias verticais executáveis. O repositório contém
+> **Estado atual:** trinta e quatro fatias verticais executáveis. O repositório contém
 > Authorization Code com PKCE, login e consentimento no Angular/TailAdmin,
 > persistência PostgreSQL, tokens OIDC, um cliente público demonstrativo e uma
 > API protegida por issuer, audience e escopo. A terceira fatia acrescenta
@@ -87,6 +87,8 @@ context em um microsserviço artificial.
 > Grafana e alertas para autenticação, erros, indisponibilidade e abuso. O
 > trigésimo terceiro adiciona carga k6 reproduzível sobre discovery, JWK Set e
 > início do Authorization Code, com limites de latência, erro e saturação. O
+> trigésimo quarto fecha a operação do MVP com runbooks acionáveis para
+> incidente, rotação planejada ou emergencial e recuperação do PostgreSQL. O
 > [roadmap](docs/roadmap.md) diferencia claramente o que está concluído do que
 > está apenas planejado.
 
@@ -418,6 +420,8 @@ O [guia de observabilidade](docs/operations/observability.md) descreve a coleta
 autenticada, o painel provisionado, os alertas e seus limites operacionais.
 O [guia de testes de carga](docs/operations/load-testing.md) descreve o workload
 k6, os thresholds e os cuidados para execução em ambiente isolado.
+O [índice de runbooks](docs/runbooks/README.md) organiza resposta a incidente,
+rotação de chaves e recuperação do estado durável.
 
 ## Licença
 

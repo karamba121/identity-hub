@@ -106,3 +106,7 @@ Conteúdo PEM e chaves privadas nunca são escritos em logs ou respostas. A
 rotação exercitada nesta etapa cobre a seleção e publicação local; execução em
 cluster, backup, recuperação e resposta a comprometimento permanecem trabalho
 operacional separado.
+
+Para executar a mudança com pontos de abortagem, rollback antes da ativação e
+tratamento distinto de comprometimento, siga o
+[runbook de rotação de chaves](../runbooks/signing-key-rotation.md).
