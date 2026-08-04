@@ -1,0 +1,27 @@
+services:
+  backend:
+    environment:
+      MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
+
+  k6:
+    image: grafana/k6:2.1.0
+    profiles:
+      - load-test
+    environment:
+      IDENTITY_HUB_LOAD_TEST_BASE_URL: ${IDENTITY_HUB_LOAD_TEST_BASE_URL:-http://backend:8080}
+      IDENTITY_HUB_LOAD_TEST_DURATION: ${IDENTITY_HUB_LOAD_TEST_DURATION:-30s}
+      IDENTITY_HUB_LOAD_TEST_READ_RATE: ${IDENTITY_HUB_LOAD_TEST_READ_RATE:-25}
+      IDENTITY_HUB_LOAD_TEST_AUTHORIZATION_RATE: ${IDENTITY_HUB_LOAD_TEST_AUTHORIZATION_RATE:-5}
+    volumes:
+      - ./ops/load-tests:/scripts:ro
+    command:
+      - run
+      - /scripts/critical-endpoints.js
+    read_only: true
+    tmpfs:
+      - /tmp
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - identity_hub

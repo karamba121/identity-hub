@@ -175,7 +175,7 @@ o resource server rejeita tokens destinados a outra audience.
 - [x] testar tokens emitidos antes, durante e após rotação;
 - [x] definir backup, restauração e retenção de auditoria;
 - [x] criar painéis e alertas para autenticação, erro e abuso;
-- [ ] executar testes de carga focados nos endpoints críticos;
+- [x] executar testes de carga focados nos endpoints críticos;
 - [ ] documentar runbooks de incidente, rotação e recuperação.
 
 **Critério de aceite:** uma rotação exercitada não invalida prematuramente
