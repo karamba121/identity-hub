@@ -11,6 +11,7 @@ import { SignUpComponent } from './pages/auth-pages/sign-up/sign-up.component';
 import { TwoStepVerificationComponent } from './pages/auth-pages/two-step-verification/two-step-verification.component';
 import { VerifyEmailComponent } from './pages/auth-pages/verify-email/verify-email.component';
 import { ConsentComponent } from './pages/auth-pages/consent/consent.component';
+import { DeviceAuthorizationComponent } from './pages/auth-pages/device-authorization/device-authorization.component';
 import { OauthDemoComponent } from './pages/oauth-demo/oauth-demo.component';
 import { OAuthClientsAdminComponent } from './pages/admin/oauth-clients/oauth-clients-admin.component';
 import { BlankComponent } from './pages/blank/blank.component';
@@ -601,6 +602,11 @@ export const routes: Routes = [
     path:'consent',
     component:ConsentComponent,
     title:'Consentimento | Identity Hub'
+  },
+  {
+    path:'device',
+    component:DeviceAuthorizationComponent,
+    title:'Autorizar dispositivo | Identity Hub'
   },
   {
     path:'signup',

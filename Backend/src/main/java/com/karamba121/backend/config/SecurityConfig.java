@@ -99,6 +99,8 @@ import com.karamba121.backend.features.access.AdminResourceContract;
 import com.karamba121.backend.features.interaction.LoginInteractionEntryPoint;
 import com.karamba121.backend.features.interaction.PublicParClientAuthenticationConverter;
 import com.karamba121.backend.features.interaction.PublicParClientAuthenticationProvider;
+import com.karamba121.backend.features.interaction.PublicDeviceClientAuthenticationConverter;
+import com.karamba121.backend.features.interaction.PublicDeviceClientAuthenticationProvider;
 import com.karamba121.backend.features.resource.DemoResourceContract;
 import com.karamba121.backend.features.scim.ScimResourceContract;
 import com.karamba121.backend.features.session.RefreshTokenFamilyRepository;
@@ -125,20 +127,31 @@ public class SecurityConfig {
             OAuth2TokenGenerator<?> tokenGenerator,
             RegisteredClientRepository registeredClients,
             SessionMetrics sessionMetrics,
-            SessionRegistry sessionRegistry) throws Exception {
+            SessionRegistry sessionRegistry,
+            IdentityHubProperties properties) throws Exception {
+        String uiBaseUrl = properties.uiBaseUrl().replaceAll("/+$", "");
         http.oauth2AuthorizationServer(authorizationServer -> authorizationServer
                 .tokenGenerator(tokenGenerator)
                 .clientAuthentication(client -> client
                         .authenticationConverters(converters -> {
+                            converters.add(0, new PublicDeviceClientAuthenticationConverter());
                             converters.add(0, new PublicParClientAuthenticationConverter());
                             converters.add(0, new PublicRefreshClientAuthenticationConverter());
                         })
                         .authenticationProviders(providers -> {
+                            providers.add(0, new PublicDeviceClientAuthenticationProvider(registeredClients));
                             providers.add(0, new PublicParClientAuthenticationProvider(registeredClients));
                             providers.add(0, new PublicRefreshClientAuthenticationProvider(registeredClients));
                         }))
                 .authorizationEndpoint(endpoint -> endpoint.consentPage("/oauth2/consent"))
                 .pushedAuthorizationRequestEndpoint(Customizer.withDefaults())
+                .deviceAuthorizationEndpoint(endpoint -> endpoint.verificationUri(uiBaseUrl + "/device"))
+                .deviceVerificationEndpoint(endpoint -> endpoint
+                        .consentPage(uiBaseUrl + "/device")
+                        .deviceVerificationResponseHandler((request, response, authentication) ->
+                                response.sendRedirect(uiBaseUrl + "/device?status=approved"))
+                        .errorResponseHandler((request, response, exception) ->
+                                response.sendRedirect(uiBaseUrl + "/device?status=error")))
                 .tokenEndpoint(endpoint -> endpoint.authenticationProviders(providers -> {
                     for (int index = 0; index < providers.size(); index++) {
                         AuthenticationProvider provider = providers.get(index);

@@ -1,0 +1,52 @@
+<app-auth-page-layout>
+  <div class="flex w-full max-w-md flex-1 flex-col justify-center mx-auto">
+    <p class="mb-2 text-sm font-medium text-brand-500">Identity Hub</p>
+
+    @if (status === 'approved') {
+      <h1 class="mb-3 text-title-sm font-semibold text-gray-800 dark:text-white/90">Dispositivo autorizado</h1>
+      <div class="rounded-xl border border-success-200 bg-success-50 px-4 py-4 text-sm text-success-700" role="status">
+        Volte ao dispositivo. Ele já pode concluir o acesso com segurança.
+      </div>
+    } @else if (status === 'error') {
+      <h1 class="mb-3 text-title-sm font-semibold text-gray-800 dark:text-white/90">Autorização não concluída</h1>
+      <div class="rounded-xl border border-error-200 bg-error-50 px-4 py-4 text-sm text-error-700" role="alert">
+        O pedido foi recusado, expirou ou não pôde ser validado. Solicite um novo código no dispositivo.
+      </div>
+    } @else if (status === 'consent') {
+      <h1 class="mb-2 text-title-sm font-semibold text-gray-800 dark:text-white/90">Autorizar dispositivo</h1>
+      <p class="mb-6 text-sm text-gray-500 dark:text-gray-400">
+        Confirme se o código <strong class="font-mono text-gray-800 dark:text-white">{{ userCode }}</strong> é o mesmo exibido pelo dispositivo.
+      </p>
+      @if (errorMessage) {
+        <div class="mb-5 rounded-lg border border-error-200 bg-error-50 px-4 py-3 text-sm text-error-700" role="alert">{{ errorMessage }}</div>
+      }
+      @if (clientName) {
+        <div class="mb-6 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+          <p class="font-medium text-gray-800 dark:text-white">{{ clientName }}</p>
+          <ul class="mt-3 space-y-2">
+            @for (scope of scopes; track scope) {
+              <li class="flex gap-2 text-sm text-gray-600 dark:text-gray-300"><span class="text-success-500">✓</span>{{ scopeLabel(scope) }}</li>
+            }
+          </ul>
+        </div>
+      }
+      <div class="flex gap-3">
+        <button type="button" (click)="decide(false)" [disabled]="loading || !clientName" class="flex-1 rounded-lg border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 disabled:opacity-50 dark:border-gray-700 dark:text-gray-300">Recusar</button>
+        <button type="button" (click)="decide(true)" [disabled]="loading || !clientName" class="flex-1 rounded-lg bg-brand-500 px-4 py-3 text-sm font-medium text-white disabled:opacity-50">{{ loading ? 'Processando…' : 'Autorizar' }}</button>
+      </div>
+    } @else {
+      <h1 class="mb-2 text-title-sm font-semibold text-gray-800 dark:text-white/90">Conectar um dispositivo</h1>
+      <p class="mb-6 text-sm text-gray-500 dark:text-gray-400">Digite o código exibido na TV, terminal ou outro dispositivo com entrada limitada.</p>
+      @if (errorMessage) {
+        <div class="mb-5 rounded-lg border border-error-200 bg-error-50 px-4 py-3 text-sm text-error-700" role="alert">{{ errorMessage }}</div>
+      }
+      <form (ngSubmit)="verify()">
+        <label for="userCode" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Código do dispositivo</label>
+        <input id="userCode" name="userCode" [(ngModel)]="userCode" autocomplete="one-time-code" inputmode="text" maxlength="9" required
+          class="h-14 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-center font-mono text-xl uppercase tracking-[0.2em] text-gray-800 outline-hidden focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:text-white" placeholder="BCDF-GHJK" />
+        <button type="submit" class="mt-5 h-11 w-full rounded-lg bg-brand-500 px-4 text-sm font-medium text-white hover:bg-brand-600">Continuar</button>
+      </form>
+      <p class="mt-5 text-center text-xs text-gray-500 dark:text-gray-400">Nunca digite um código que você não tenha solicitado no próprio dispositivo.</p>
+    }
+  </div>
+</app-auth-page-layout>

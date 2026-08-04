@@ -18,7 +18,7 @@ interface ClientForm {
   clientName: string;
   redirectUris: string;
   postLogoutRedirectUris: string;
-  clientType: 'PUBLIC' | 'CONFIDENTIAL';
+  clientType: 'PUBLIC' | 'CONFIDENTIAL' | 'DEVICE';
 }
 
 @Component({
@@ -115,7 +115,9 @@ export class OAuthClientsAdminComponent implements OnInit {
     this.form.postLogoutRedirectUris = '';
     this.selectedScopes = this.form.clientType === 'CONFIDENTIAL'
       ? new Set(['scim.read'])
-      : new Set(['openid', 'profile']);
+      : this.form.clientType === 'DEVICE'
+        ? new Set(['profile', 'demo.read'])
+        : new Set(['openid', 'profile']);
     this.createdSecret = '';
   }
 
@@ -231,7 +233,9 @@ export class OAuthClientsAdminComponent implements OnInit {
   get supportedScopes(): string[] {
     return this.form.clientType === 'CONFIDENTIAL'
       ? ['demo.read', 'scim.read', 'scim.write']
-      : ['openid', 'profile', 'email', 'demo.read', 'identity.admin'];
+      : this.form.clientType === 'DEVICE'
+        ? ['openid', 'profile', 'email', 'demo.read']
+        : ['openid', 'profile', 'email', 'demo.read', 'identity.admin'];
   }
 
   private async initialize(): Promise<void> {

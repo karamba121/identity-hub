@@ -43,6 +43,11 @@ public class OAuthClientAdministrationService {
             DemoResourceContract.SCOPE,
             ScimResourceContract.READ_SCOPE,
             ScimResourceContract.WRITE_SCOPE);
+    private static final Set<String> DEVICE_SCOPES = Set.of(
+            OidcScopes.OPENID,
+            OidcScopes.PROFILE,
+            OidcScopes.EMAIL,
+            DemoResourceContract.SCOPE);
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final RegisteredClientRepository clients;
@@ -97,6 +102,11 @@ public class OAuthClientAdministrationService {
                     .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
                     .clientSettings(confidentialClientSettings())
                     .tokenSettings(confidentialClientTokenSettings());
+        } else if (validated.clientType() == ClientType.DEVICE) {
+            builder.clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
+                    .authorizationGrantType(AuthorizationGrantType.DEVICE_CODE)
+                    .clientSettings(deviceClientSettings())
+                    .tokenSettings(deviceClientTokenSettings());
         } else {
             builder.clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
                     .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
@@ -128,6 +138,8 @@ public class OAuthClientAdministrationService {
                 .scopes(values -> replace(values, validated.scopes()));
         if (clientType == ClientType.CONFIDENTIAL) {
             builder.clientSettings(confidentialClientSettings()).tokenSettings(confidentialClientTokenSettings());
+        } else if (clientType == ClientType.DEVICE) {
+            builder.clientSettings(deviceClientSettings()).tokenSettings(deviceClientTokenSettings());
         } else {
             builder.clientSettings(publicClientSettings()).tokenSettings(publicClientTokenSettings());
         }
@@ -256,6 +268,13 @@ public class OAuthClientAdministrationService {
             if (!CONFIDENTIAL_SCOPES.containsAll(scopes)) {
                 throw new IllegalArgumentException("Cliente confidencial aceita somente escopos de máquina");
             }
+        } else if (clientType == ClientType.DEVICE) {
+            if (!redirectUris.isEmpty() || !postLogoutRedirectUris.isEmpty()) {
+                throw new IllegalArgumentException("Cliente de dispositivo não aceita redirect URIs");
+            }
+            if (!DEVICE_SCOPES.containsAll(scopes)) {
+                throw new IllegalArgumentException("Cliente de dispositivo aceita somente escopos delegados de usuário");
+            }
         } else if (scopes.contains(ScimResourceContract.READ_SCOPE)
                 || scopes.contains(ScimResourceContract.WRITE_SCOPE)) {
             throw new IllegalArgumentException("Escopos SCIM exigem cliente confidencial de máquina");
@@ -352,6 +371,13 @@ public class OAuthClientAdministrationService {
                 .build();
     }
 
+    private static ClientSettings deviceClientSettings() {
+        return ClientSettings.builder()
+                .requireProofKey(false)
+                .requireAuthorizationConsent(true)
+                .build();
+    }
+
     private static TokenSettings confidentialClientTokenSettings() {
         return TokenSettings.builder()
                 .accessTokenTimeToLive(Duration.ofMinutes(5))
@@ -359,8 +385,11 @@ public class OAuthClientAdministrationService {
     }
 
     private static ClientType clientType(RegisteredClient client) {
-        return client.getAuthorizationGrantTypes().contains(AuthorizationGrantType.CLIENT_CREDENTIALS)
-                ? ClientType.CONFIDENTIAL
+        if (client.getAuthorizationGrantTypes().contains(AuthorizationGrantType.CLIENT_CREDENTIALS)) {
+            return ClientType.CONFIDENTIAL;
+        }
+        return client.getAuthorizationGrantTypes().contains(AuthorizationGrantType.DEVICE_CODE)
+                ? ClientType.DEVICE
                 : ClientType.PUBLIC;
     }
 
@@ -376,6 +405,13 @@ public class OAuthClientAdministrationService {
                 .accessTokenTimeToLive(Duration.ofMinutes(5))
                 .refreshTokenTimeToLive(Duration.ofHours(8))
                 .reuseRefreshTokens(false)
+                .build();
+    }
+
+    private static TokenSettings deviceClientTokenSettings() {
+        return TokenSettings.builder()
+                .deviceCodeTimeToLive(Duration.ofMinutes(10))
+                .accessTokenTimeToLive(Duration.ofMinutes(5))
                 .build();
     }
 
@@ -414,7 +450,8 @@ public class OAuthClientAdministrationService {
 
     private enum ClientType {
         PUBLIC,
-        CONFIDENTIAL;
+        CONFIDENTIAL,
+        DEVICE;
 
         private static ClientType parse(String value) {
             if (value == null || value.isBlank()) {
@@ -423,7 +460,7 @@ public class OAuthClientAdministrationService {
             try {
                 return valueOf(value.trim().toUpperCase(Locale.ROOT));
             } catch (IllegalArgumentException exception) {
-                throw new IllegalArgumentException("Tipo de cliente deve ser PUBLIC ou CONFIDENTIAL");
+                throw new IllegalArgumentException("Tipo de cliente deve ser PUBLIC, CONFIDENTIAL ou DEVICE");
             }
         }
     }

@@ -187,7 +187,7 @@ tokens dentro da política, e o procedimento de recuperação possui evidência.
 - [x] passkeys/WebAuthn;
 - [x] federação com provedores externos;
 - [x] provisionamento SCIM;
-- [ ] device authorization grant para dispositivos limitados;
+- [x] device authorization grant para dispositivos limitados;
 - [ ] políticas adaptativas de autenticação;
 - [ ] issuer por tenant, apenas se houver requisito comprovado;
 - [ ] implantação altamente disponível e testes de caos;

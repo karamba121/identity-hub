@@ -18,7 +18,7 @@ export interface OAuthClientView {
   redirectUris: string[];
   postLogoutRedirectUris: string[];
   scopes: string[];
-  clientType: 'PUBLIC' | 'CONFIDENTIAL';
+  clientType: 'PUBLIC' | 'CONFIDENTIAL' | 'DEVICE';
   pkceRequired: boolean;
   createdAt: string;
   clientSecret?: string;
@@ -31,7 +31,7 @@ export interface OAuthClientCommand {
   redirectUris: string[];
   postLogoutRedirectUris: string[];
   scopes: string[];
-  clientType?: 'PUBLIC' | 'CONFIDENTIAL';
+  clientType?: 'PUBLIC' | 'CONFIDENTIAL' | 'DEVICE';
 }
 
 export interface SecurityAuditEventView {

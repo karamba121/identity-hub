@@ -10,6 +10,8 @@ import java.util.Set;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
+import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
+import org.springframework.security.oauth2.core.OAuth2UserCode;
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
@@ -30,6 +32,8 @@ import jakarta.servlet.http.HttpServletRequest;
 public class AuthorizationInteractionService {
 
     private static final OAuth2TokenType STATE_TOKEN_TYPE = new OAuth2TokenType("state");
+    private static final OAuth2TokenType USER_CODE_TOKEN_TYPE =
+            new OAuth2TokenType(OAuth2ParameterNames.USER_CODE);
     private static final String PAR_REQUEST_URI_PREFIX = "urn:ietf:params:oauth:request_uri:";
     private static final String PAR_REQUEST_URI_DELIMITER = "___";
 
@@ -56,6 +60,9 @@ public class AuthorizationInteractionService {
 
     @Transactional
     public String createLogin(HttpServletRequest request) {
+        if (request.getRequestURI().endsWith("/oauth2/device_verification")) {
+            return createDeviceLogin(request);
+        }
         String clientId = required(request.getParameter("client_id"), "client_id ausente");
         RegisteredClient client = requireClient(clientId);
         OAuth2AuthorizationRequest pushedRequest = resolvePushedRequest(request, client);
@@ -80,6 +87,35 @@ public class AuthorizationInteractionService {
                 pushedRequest == null ? request.getParameter("state") : pushedRequest.getState(),
                 resumeUri,
                 redirectUri);
+    }
+
+    private String createDeviceLogin(HttpServletRequest request) {
+        String userCode = required(request.getParameter(OAuth2ParameterNames.USER_CODE), "user_code ausente");
+        OAuth2Authorization authorization = authorizations.findByToken(userCode, USER_CODE_TOKEN_TYPE);
+        if (authorization == null || authorization.getToken(OAuth2UserCode.class) == null
+                || !authorization.getToken(OAuth2UserCode.class).isActive()) {
+            throw new InteractionException(HttpStatus.BAD_REQUEST, "Código de dispositivo inválido ou expirado");
+        }
+        RegisteredClient client = clients.findById(authorization.getRegisteredClientId());
+        if (client == null || !client.getAuthorizationGrantTypes()
+                .contains(org.springframework.security.oauth2.core.AuthorizationGrantType.DEVICE_CODE)) {
+            throw new InteractionException(HttpStatus.BAD_REQUEST, "Cliente de dispositivo inválido");
+        }
+        @SuppressWarnings("unchecked")
+        Set<String> requestedScopes = authorization.getAttribute(OAuth2ParameterNames.SCOPE);
+        String resumeUri = request.getRequestURI();
+        if (StringUtils.hasText(request.getQueryString())) {
+            resumeUri += "?" + request.getQueryString();
+        }
+        return create(
+                request,
+                InteractionType.LOGIN,
+                null,
+                client.getClientId(),
+                requestedScopes == null ? "" : String.join(" ", requestedScopes),
+                null,
+                resumeUri,
+                null);
     }
 
     private OAuth2AuthorizationRequest resolvePushedRequest(

@@ -35,6 +35,7 @@ declare qual registro foi substituído.
 | [015](015-passkeys-webauthn.md) | Passkeys WebAuthn para autenticação sem senha | Aceito |
 | [016](016-external-oidc-federation.md) | Federação OIDC e vínculo seguro de identidades | Aceito |
 | [017](017-scim-user-provisioning.md) | Provisionamento SCIM isolado por tenant | Aceito |
+| [018](018-device-authorization-grant.md) | Device Authorization Grant com consentimento no navegador | Aceito |
 
 ## Template
 

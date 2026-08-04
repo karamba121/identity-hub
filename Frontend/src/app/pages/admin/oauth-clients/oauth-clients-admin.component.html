@@ -107,7 +107,7 @@
                       <div class="flex flex-wrap items-center gap-2">
                         <h3 class="truncate font-medium text-gray-900 dark:text-white">{{ client.clientName }}</h3>
                         <span class="rounded-full bg-success-50 px-2.5 py-0.5 text-xs font-medium text-success-700 dark:bg-success-500/10 dark:text-success-400">
-                          {{ client.clientType === 'PUBLIC' ? 'Público · PKCE' : 'Confidencial · Client Credentials' }}
+                          {{ client.clientType === 'PUBLIC' ? 'Público · PKCE' : (client.clientType === 'DEVICE' ? 'Dispositivo · Device Code' : 'Confidencial · Client Credentials') }}
                         </span>
                       </div>
                       <p class="mt-1 font-mono text-xs text-gray-500 dark:text-gray-400">{{ client.clientId }}</p>
@@ -148,7 +148,7 @@
             <div>
               <h2 class="font-semibold text-gray-900 dark:text-white">{{ editingClientId ? 'Editar cliente' : 'Novo cliente OAuth' }}</h2>
               <p class="mt-1 text-sm text-gray-500">
-                {{ form.clientType === 'PUBLIC' ? 'Authorization Code com PKCE.' : 'Client Credentials para integração entre sistemas.' }}
+                {{ form.clientType === 'PUBLIC' ? 'Authorization Code com PKCE.' : (form.clientType === 'DEVICE' ? 'Device Authorization Grant para dispositivos com entrada limitada.' : 'Client Credentials para integração entre sistemas.') }}
               </p>
               @if (form.clientType === 'CONFIDENTIAL') {
                 <p class="mt-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
@@ -174,6 +174,7 @@
                   class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-hidden focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 disabled:bg-gray-100 dark:border-gray-700 dark:text-white dark:disabled:bg-gray-800">
                   <option value="PUBLIC">Público — Authorization Code + PKCE</option>
                   <option value="CONFIDENTIAL">Confidencial — Client Credentials</option>
+                  <option value="DEVICE">Dispositivo — Device Authorization Grant</option>
                 </select>
               </div>
               <div>

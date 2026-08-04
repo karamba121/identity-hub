@@ -220,6 +220,31 @@ class OAuthClientAdministrationEndpointTests {
     }
 
     @Test
+    void createsDeviceClientWithoutSecretOrRedirectUri() throws Exception {
+        Tenant tenant = tenant("oauth-device");
+        TenantMembership actor = actor(
+                tenant, "oauth-device-admin", PermissionCode.OAUTH_CLIENTS_READ, PermissionCode.OAUTH_CLIENTS_MANAGE);
+        String clientId = "device-" + shortSuffix();
+
+        mockMvc.perform(post(baseUrl(tenant))
+                        .header("Authorization", bearer(actor))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(devicePayload(clientId)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.clientType").value("DEVICE"))
+                .andExpect(jsonPath("$.pkceRequired").value(false))
+                .andExpect(jsonPath("$.redirectUris.length()").value(0))
+                .andExpect(jsonPath("$.clientSecret").doesNotExist());
+
+        RegisteredClient created = clients.findByClientId(clientId);
+        assertThat(created).isNotNull();
+        assertThat(created.getAuthorizationGrantTypes()).containsExactly(AuthorizationGrantType.DEVICE_CODE);
+        assertThat(created.getClientAuthenticationMethods()).containsExactly(ClientAuthenticationMethod.NONE);
+        assertThat(created.getClientSettings().isRequireAuthorizationConsent()).isTrue();
+        assertThat(created.getTokenSettings().getDeviceCodeTimeToLive()).isEqualTo(java.time.Duration.ofMinutes(10));
+    }
+
+    @Test
     void publicClientCannotUseClientCredentials() throws Exception {
         Tenant tenant = tenant("oauth-public-grant");
         TenantMembership actor = actor(
@@ -625,6 +650,19 @@ class OAuthClientAdministrationEndpointTests {
                   "redirectUris":[],
                   "postLogoutRedirectUris":[],
                   "scopes":["demo.read"]
+                }
+                """.formatted(clientId);
+    }
+
+    private static String devicePayload(String clientId) {
+        return """
+                {
+                  "clientId":"%s",
+                  "clientName":"Dispositivo limitado",
+                  "clientType":"DEVICE",
+                  "redirectUris":[],
+                  "postLogoutRedirectUris":[],
+                  "scopes":["profile","demo.read"]
                 }
                 """.formatted(clientId);
     }
